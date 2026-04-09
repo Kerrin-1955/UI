@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Fish Scene</title>
+
+<style>
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{width:100vw;height:100vh;overflow:hidden;background:#000;position:relative}
+
+body.screen-shake{animation:screenShake 260ms ease-out}
+
+.front-bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none;transform:scale(1);transform-origin:center center;opacity:0;transition:transform 1200ms ease,opacity 2200ms ease;z-index:1}
+
+.front-bg.show{opacity:1}
+
+.black-overlay{position:fixed;inset:0;background:#000;opacity:0;z-index:5;pointer-events:none;transition:opacity 1800ms ease}
+
+.black-overlay.show{opacity:1}
+
+.face{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:6;opacity:0;pointer-events:none;transition:opacity 2600ms ease;user-select:none;-webkit-user-drag:none}
+
+.face.show{opacity:1}
+
+.outside-dark{position:fixed;inset:0;width:100%;height:100%;z-index:8;opacity:0;pointer-events:none;transition:opacity 1200ms ease}
+
+.outside-dark.show{opacity:1}
+
+.glare{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:9;opacity:0;pointer-events:none;transition:opacity 1800ms ease;user-select:none;-webkit-user-drag:none}
+
+.glare.show{opacity:1}
+
+.glare-tint{position:fixed;inset:0;z-index:10;opacity:0;pointer-events:none;transition:opacity 1400ms ease;background:rgba(4,18,54,.72);-webkit-mask-image:url("眼镜反光.png");-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;-webkit-mask-size:cover;mask-image:url("眼镜反光.png");mask-repeat:no-repeat;mask-position:center;mask-size:cover}
+
+.glare-tint.show{opacity:1}
+
+.whale-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:11;opacity:0;pointer-events:none;transition:opacity 1800ms ease;cursor:grab}
+
+.whale-canvas.show{opacity:1;pointer-events:auto}
+
+.whale-canvas.dragging{cursor:grabbing}
+
+
+.find-eyes-hint{position:fixed;left:50%;top:20%;transform:translateX(-50%);z-index:12;opacity:0;color:rgba(255,255,255,.42);font-family:"Arial Black","Microsoft YaHei UI","Microsoft YaHei",sans-serif;font-size:clamp(18px,1.55vw,30px);font-weight:900;letter-spacing:.18em;text-transform:uppercase;pointer-events:none;text-shadow:0 0 10px rgba(255,255,255,.08);transition:opacity 1200ms ease}
+
+.find-eyes-hint.show{opacity:1}
+
+.whale-center{position:fixed;left:50%;top:50%;width:135vw;max-width:none;height:auto;transform:translate(-50%,-50%) scale(1.12);z-index:12;opacity:0;pointer-events:none;transition:opacity 2400ms ease,transform 2400ms ease;filter:saturate(1.08) brightness(1.06)}
+
+.whale-center.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+.final-black{position:fixed;inset:0;background:#000;z-index:13;opacity:0;pointer-events:none;transition:opacity 1800ms ease}
+
+.final-black.show{opacity:1}
+
+.final-whale{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:14;opacity:0;pointer-events:none;transition:opacity 2200ms ease}
+
+.final-whale.show{opacity:1}
+
+.final-dialog{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%);width:min(1120px,96vw);z-index:15;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 900ms ease}
+
+.final-dialog.show{opacity:1;visibility:visible}
+
+.final-dialog img{width:100%;height:auto;display:block;filter:sepia(.2) saturate(1.06) hue-rotate(-8deg)}
+
+.final-dialog-text{position:absolute;left:6%;right:6%;top:55%;transform:translateY(-50%);text-align:left;color:#231d24;font-family:"Arial Black","Microsoft YaHei UI","Microsoft YaHei",sans-serif;font-size:clamp(15px,1.25vw,22px);font-weight:900;line-height:1.2;letter-spacing:.02em;padding:4px 6px}
+
+@keyframes screenShake{
+
+  0%{transform:translate3d(0,0,0)}
+
+  20%{transform:translate3d(-6px,2px,0)}
+
+  40%{transform:translate3d(5px,-3px,0)}
+
+  60%{transform:translate3d(-4px,2px,0)}
+
+  80%{transform:translate3d(3px,-1px,0)}
+
+  100%{transform:translate3d(0,0,0)}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<audio id="officeAudio" src="音乐/办公室.mp3" autoplay loop></audio>
+<audio id="whaleCryAudio" src="音乐/鲸鱼叫声.mp3"></audio>
+
+<img id="frontBg" class="front-bg" src="水族箱前.jpg" alt="水族馆前" />
+
+<div id="blackOverlay" class="black-overlay"></div>
+
+<img id="face" class="face" src="大脸.png" alt="大脸" />
+
+<canvas id="outsideDark" class="outside-dark"></canvas>
+
+<img id="glare" class="glare" src="眼镜反光.png" alt="眼镜反光" />
+
+<div id="glareTint" class="glare-tint"></div>
+
+<canvas id="whaleCanvas" class="whale-canvas"></canvas>
+
+<div id="findEyesHint" class="find-eyes-hint">TRY TO FIND JIS EYES.</div>
+
+<img id="whaleCenter" class="whale-center" src="虎鲸整体.jpg" alt="虎鲸整体特写" />
+
+<div id="finalBlack" class="final-black"></div>
+
+<img id="finalWhale" class="final-whale" src="放大.jpg" alt="放大的虎鲸" />
+
+<div id="finalDialog" class="final-dialog">
+
+  <img src="对话框.png" alt="对话框" />
+
+  <div class="final-dialog-text">This must be Ninth! Looking forward to working with you, partner!</div>
+
+</div>
+
+<script>
+
+(function(){
+
+  const officeAudio=document.getElementById('officeAudio');
+
+  const whaleCryAudio=document.getElementById('whaleCryAudio');
+
+  const frontBg=document.getElementById('frontBg');
+
+  const blackOverlay=document.getElementById('blackOverlay');
+
+  const face=document.getElementById('face');
+
+  const glare=document.getElementById('glare');
+
+  const glareTint=document.getElementById('glareTint');
+
+  const whaleCanvas=document.getElementById('whaleCanvas');
+
+  const whaleCtx=whaleCanvas.getContext('2d');
+
+  const outsideDark=document.getElementById('outsideDark');
+
+  const darkCtx=outsideDark.getContext('2d');
+
+  const findEyesHint=document.getElementById('findEyesHint');
+
+  const whaleCenter=document.getElementById('whaleCenter');
+
+  const finalBlack=document.getElementById('finalBlack');
+
+  const finalWhale=document.getElementById('finalWhale');
+
+  const finalDialog=document.getElementById('finalDialog');
+
+  const body=document.body;
+
+
+
+  const whaleImg=new Image();
+
+  const glareMaskImg=new Image();
+
+  whaleImg.src='虎鲸整体.jpg';
+
+  glareMaskImg.src='眼镜反光.png';
+
+
+
+  let forwardCount=0;
+
+  let stage='approach';
+
+  let canvasW=window.innerWidth;
+
+  let canvasH=window.innerHeight;
+
+  let shakeTimer=null;
+
+
+
+  function tryPlayOfficeAudio(){
+
+    if(!officeAudio) return;
+
+    const playPromise=officeAudio.play();
+
+    if(playPromise&&typeof playPromise.catch==='function'){
+
+      playPromise.catch(function(){});
+
+    }
+
+  }
+
+
+
+  function playWhaleCry(){
+
+    if(!whaleCryAudio) return;
+
+    try{whaleCryAudio.currentTime=0;}catch(err){}
+
+    const playPromise=whaleCryAudio.play();
+
+    if(playPromise&&typeof playPromise.catch==='function'){
+
+      playPromise.catch(function(){});
+
+    }
+
+  }
+
+
+
+  function triggerScreenShake(){
+
+    if(!body) return;
+
+    body.classList.remove('screen-shake');
+
+    if(shakeTimer){
+
+      clearTimeout(shakeTimer);
+
+      shakeTimer=null;
+
+    }
+
+    void body.offsetWidth;
+
+    body.classList.add('screen-shake');
+
+    shakeTimer=setTimeout(function(){
+
+      body.classList.remove('screen-shake');
+
+      shakeTimer=null;
+
+    },260);
+
+  }
+
+
+
+  tryPlayOfficeAudio();
+
+  window.addEventListener('pointerdown',tryPlayOfficeAudio,{once:true});
+
+
+
+  let whaleScale=6;
+
+  let whaleOffsetX=0;
+
+  let whaleOffsetY=0;
+
+  let isDragging=false;
+
+  let isLocked=false;
+
+  let lastX=0;
+
+  let lastY=0;
+
+  let centerRevealTriggered=false;
+
+  let finalRevealTriggered=false;
+
+  let finalExitTriggered=false;
+
+
+
+  function getMaskRect(){
+
+    const iw=glareMaskImg.width;
+
+    const ih=glareMaskImg.height;
+
+    if(!iw||!ih) return { x:0,y:0,w:0,h:0 };
+
+    const s=Math.max(canvasW/iw,canvasH/ih);
+
+    const w=iw*s;
+
+    const h=ih*s;
+
+    const x=(canvasW-w)/2;
+
+    const y=(canvasH-h)/2;
+
+    return { x,y,w,h };
+
+  }
+
+
+
+  function getWhaleRect(){
+
+    const iw=whaleImg.width;
+
+    const ih=whaleImg.height;
+
+    if(!iw||!ih) return { x:0,y:0,w:0,h:0 };
+
+    const coverScale=Math.max(canvasW/iw,canvasH/ih);
+
+    const drawScale=coverScale*whaleScale;
+
+    const w=iw*drawScale;
+
+    const h=ih*drawScale;
+
+    const x=(canvasW-w)/2+whaleOffsetX;
+
+    const y=(canvasH-h)/2+whaleOffsetY;
+
+    return { x,y,w,h };
+
+  }
+
+
+
+  function drawMaskCover(ctx,img){
+
+    const iw=img.width;
+
+    const ih=img.height;
+
+    if(!iw||!ih) return;
+
+    const s=Math.max(canvasW/iw,canvasH/ih);
+
+    const w=iw*s;
+
+    const h=ih*s;
+
+    const x=(canvasW-w)/2;
+
+    const y=(canvasH-h)/2;
+
+    ctx.drawImage(img,x,y,w,h);
+
+  }
+
+
+
+  function renderOutsideDark(){
+
+    const dpr=Math.max(1,window.devicePixelRatio||1);
+
+    outsideDark.width=Math.floor(canvasW*dpr);
+
+    outsideDark.height=Math.floor(canvasH*dpr);
+
+    outsideDark.style.width='100vw';
+
+    outsideDark.style.height='100vh';
+
+    darkCtx.setTransform(1,0,0,1,0,0);
+
+    darkCtx.clearRect(0,0,outsideDark.width,outsideDark.height);
+
+    darkCtx.scale(dpr,dpr);
+
+    darkCtx.fillStyle='rgba(0,0,0,0.88)';
+
+    darkCtx.fillRect(0,0,canvasW,canvasH);
+
+    darkCtx.globalCompositeOperation='destination-out';
+
+    drawMaskCover(darkCtx,glareMaskImg);
+
+    darkCtx.globalCompositeOperation='source-over';
+
+  }
+
+
+
+  function renderMaskedWhale(){
+
+    const dpr=Math.max(1,window.devicePixelRatio||1);
+
+    whaleCanvas.width=Math.floor(canvasW*dpr);
+
+    whaleCanvas.height=Math.floor(canvasH*dpr);
+
+    whaleCanvas.style.width='100vw';
+
+    whaleCanvas.style.height='100vh';
+
+    whaleCtx.setTransform(1,0,0,1,0,0);
+
+    whaleCtx.clearRect(0,0,whaleCanvas.width,whaleCanvas.height);
+
+    whaleCtx.scale(dpr,dpr);
+
+    const rect=getWhaleRect();
+
+    whaleCtx.drawImage(whaleImg,rect.x,rect.y,rect.w,rect.h);
+
+    whaleCtx.globalCompositeOperation='destination-in';
+
+    drawMaskCover(whaleCtx,glareMaskImg);
+
+    whaleCtx.globalCompositeOperation='source-over';
+
+  }
+
+
+
+  function setRandomInitialPose(){
+
+    whaleScale=6;
+
+    whaleOffsetX=canvasW*(0.28+Math.random()*0.08);
+
+    whaleOffsetY=canvasH*(0.22+Math.random()*0.08);
+
+  }
+
+
+
+  function maybeLockMovement(){
+
+    if(isLocked) return;
+
+    const whaleRect=getWhaleRect();
+
+    const maskRect=getMaskRect();
+
+    const targetLeft=whaleRect.x+whaleRect.w*0.30;
+
+    const targetRight=whaleRect.x+whaleRect.w*0.45;
+
+    const targetTop=whaleRect.y+whaleRect.h*(1-0.55);
+
+    const targetBottom=whaleRect.y+whaleRect.h*(1-0.45);
+
+    const fullyVisible=
+
+      targetLeft>=maskRect.x&&
+
+      targetRight<=maskRect.x+maskRect.w&&
+
+      targetTop>=maskRect.y&&
+
+      targetBottom<=maskRect.y+maskRect.h;
+
+
+
+    if(fullyVisible){
+
+      isLocked=true;
+
+      isDragging=false;
+
+      whaleCanvas.classList.add('locked');
+
+      if(findEyesHint) findEyesHint.classList.remove('show');
+
+      if(!centerRevealTriggered){
+
+        centerRevealTriggered=true;
+
+        setTimeout(function(){
+
+          whaleCenter.classList.add('show');
+
+          if(!finalRevealTriggered){
+
+            finalRevealTriggered=true;
+
+            setTimeout(function(){
+
+              finalBlack.classList.add('show');
+
+              setTimeout(function(){
+
+                finalWhale.classList.add('show');
+
+                setTimeout(function(){
+
+                  finalDialog.classList.add('show');
+
+                },3000);
+
+              },1700);
+
+            },1500);
+
+          }
+
+        },3000);
+
+      }
+
+    }
+
+  }
+
+
+
+  function updateCanvases(){
+
+    canvasW=window.innerWidth;
+
+    canvasH=window.innerHeight;
+
+    if(whaleImg.complete&&glareMaskImg.complete&&whaleImg.naturalWidth&&glareMaskImg.naturalWidth){
+
+      renderOutsideDark();
+
+      renderMaskedWhale();
+
+      maybeLockMovement();
+
+    }
+
+  }
+
+
+
+  whaleImg.onload=updateCanvases;
+
+  glareMaskImg.onload=updateCanvases;
+
+  window.addEventListener('resize',updateCanvases);
+
+
+
+  whaleCanvas.addEventListener('mousedown',function(e){
+
+    if(stage!=='whale'||isLocked) return;
+
+    isDragging=true;
+
+    lastX=e.clientX;
+
+    lastY=e.clientY;
+
+    whaleCanvas.classList.add('dragging');
+
+  });
+
+
+
+  window.addEventListener('mousemove',function(e){
+
+    if(!isDragging||isLocked) return;
+
+    const dx=e.clientX-lastX;
+
+    const dy=e.clientY-lastY;
+
+    lastX=e.clientX;
+
+    lastY=e.clientY;
+
+    whaleOffsetX+=dx;
+
+    whaleOffsetY+=dy;
+
+    updateCanvases();
+
+  });
+
+
+
+  window.addEventListener('mouseup',function(){
+
+    isDragging=false;
+
+    whaleCanvas.classList.remove('dragging');
+
+  });
+
+
+
+  window.addEventListener('wheel',function(e){
+
+    triggerScreenShake();
+
+    if(stage!=='approach') return;
+
+    if(e.deltaY>=0) return;
+
+    forwardCount+=1;
+
+    frontBg.style.transform=`scale(${1 + forwardCount * 0.18})`;
+
+    if(forwardCount>=3){
+
+      stage='transitioning';
+
+      blackOverlay.classList.add('show');
+
+      setTimeout(function(){
+
+        face.classList.add('show');
+
+      },1700);
+
+      setTimeout(function(){
+
+        setRandomInitialPose();
+
+        updateCanvases();
+
+        outsideDark.classList.add('show');
+
+        glareTint.classList.add('show');
+
+        glare.classList.add('show');
+
+        whaleCanvas.classList.add('show');
+
+        if(findEyesHint) findEyesHint.classList.add('show');
+
+        stage='whale';
+
+      },3600);
+
+    }
+
+  },{passive:true});
+
+
+
+  document.addEventListener('click',function(){
+
+    if(!finalDialog.classList.contains('show')||finalExitTriggered) return;
+
+    finalExitTriggered=true;
+
+    finalDialog.classList.remove('show');
+
+    finalWhale.classList.remove('show');
+
+    finalBlack.classList.add('show');
+
+    setTimeout(function(){window.location.href='first.htm';},1600);
+
+  });
+
+})();
+
+
+
+window.addEventListener('DOMContentLoaded',function(){
+
+  setTimeout(function(){
+
+    frontBg.classList.add('show');
+
+  },80);
+
+});
+
+</script>
+
+</body>
+
+</html>
+

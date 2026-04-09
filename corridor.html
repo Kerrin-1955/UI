@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+
+<head>
+
+<meta charset="UTF-8" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<title>Corridor</title>
+
+<style>
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{width:100vw;height:100vh;overflow:hidden;background:#000;position:relative}
+
+.corridor{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none;z-index:1;transition:transform 1200ms ease;transform:scale(1);transform-origin:center center}
+
+.blue-tint{position:fixed;inset:0;background:rgba(4,18,44,.66);z-index:6;opacity:0;pointer-events:none;transition:opacity 900ms ease}
+
+.blue-tint.show{opacity:1}
+
+.black-overlay{position:fixed;inset:0;background:#000;z-index:20;opacity:0;pointer-events:none;transition:opacity 1800ms ease}
+
+.black-overlay.show{opacity:1}
+
+.marker-layer{position:fixed;inset:0;z-index:7;pointer-events:none}
+
+.marker{position:absolute;background:transparent;border:none;color:transparent;font-size:30px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:none;pointer-events:auto;cursor:pointer;user-select:none}
+
+.marker-1{left:2vw;top:8vh;width:22vw;height:52vh}
+
+.marker-2{right:4vw;top:8vh;width:22vw;height:24vh}
+
+.marker-3{right:34vw;top:36vh;width:22vw;height:24vh}
+
+.popup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 1400ms ease}
+
+.popup.show{opacity:1;visibility:visible;pointer-events:auto}
+
+.popup.dismissing{opacity:0}
+
+.popup-frame{display:inline-block;padding:10px;background:repeating-linear-gradient(0deg,#ffffff 0 6px,#f0f0f0 6px 12px),repeating-linear-gradient(90deg,#ffffff 0 6px,#ececec 6px 12px);border:2px solid #fff;box-shadow:0 0 0 2px #d9d9d9,0 0 0 4px #fff}
+
+.popup.dismissing .popup-frame{animation:popupShake 360ms ease-out}
+
+.popup img{display:block;width:auto;height:auto;max-width:min(820px,86vw);max-height:68vh;object-fit:contain;image-rendering:pixelated}
+
+.popup-text{margin-top:14px;color:#fff;font-family:"Press Start 2P","Pixel Emulator","Courier New",monospace;font-size:clamp(14px,1.2vw,20px);line-height:1.6;letter-spacing:.05em;-webkit-font-smoothing:none;font-smooth:never;image-rendering:pixelated;text-shadow:1px 1px 0 rgba(0,0,0,.9),2px 2px 0 rgba(0,0,0,.6)}
+
+.compliment-dialog{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%);width:min(1120px,96vw);z-index:9;opacity:0;visibility:hidden;transition:opacity 700ms ease;pointer-events:none}
+
+.compliment-dialog.show{opacity:1;visibility:visible}
+
+.compliment-dialog img{width:100%;height:auto;display:block;filter:sepia(.2) saturate(1.06) hue-rotate(-8deg)}
+
+.compliment-text{position:absolute;left:6%;right:6%;top:55%;transform:translateY(-50%);text-align:left;color:#231d24;font-family:"Arial Black","Microsoft YaHei UI","Microsoft YaHei",sans-serif;font-size:clamp(14px,1.2vw,20px);font-weight:900;line-height:1.2;letter-spacing:.02em}
+
+@keyframes popupShake{
+
+  0%{transform:translate3d(0,0,0) rotate(0deg)}
+
+  20%{transform:translate3d(-8px,2px,0) rotate(-1.4deg)}
+
+  40%{transform:translate3d(7px,-3px,0) rotate(1.2deg)}
+
+  60%{transform:translate3d(-6px,2px,0) rotate(-1deg)}
+
+  80%{transform:translate3d(4px,-1px,0) rotate(.8deg)}
+
+  100%{transform:translate3d(0,0,0) rotate(0deg)}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<audio id="officeAudio" src="音乐/办公室.mp3" autoplay loop></audio>
+
+<img id="corridorImg" class="corridor" src="水族馆通道.jpg" alt="水族馆通道" />
+
+<div id="blueTint" class="blue-tint"></div>
+
+<div id="blackOverlay" class="black-overlay"></div>
+
+<div class="marker-layer">
+
+  <div class="marker marker-1" id="marker1">1</div>
+
+  <div class="marker marker-2" id="marker2">2</div>
+
+  <div class="marker marker-3" id="marker3">3</div>
+
+</div>
+
+<div id="popup" class="popup">
+
+  <div class="popup-frame">
+
+    <img id="popupImg" src="" alt="展示图" />
+
+  </div>
+
+  <div id="popupText" class="popup-text"></div>
+
+</div>
+
+<div id="complimentDialog" class="compliment-dialog">
+
+  <img src="对话框.png" alt="对话框" />
+
+  <div id="complimentText" class="compliment-text">It's really so beautiful.</div>
+
+</div>
+
+<script>
+
+(function(){
+
+  const officeAudio=document.getElementById('officeAudio');
+
+  const marker1=document.getElementById('marker1');
+
+  const marker2=document.getElementById('marker2');
+
+  const marker3=document.getElementById('marker3');
+
+  const popup=document.getElementById('popup');
+
+  const popupImg=document.getElementById('popupImg');
+
+  const popupText=document.getElementById('popupText');
+
+  const blueTint=document.getElementById('blueTint');
+
+  const blackOverlay=document.getElementById('blackOverlay');
+
+  const complimentDialog=document.getElementById('complimentDialog');
+
+  const complimentText=document.getElementById('complimentText');
+
+  const corridorImg=document.getElementById('corridorImg');
+
+  let partnerMode=false;
+
+  let wheelCount=0;
+
+  let isTransitioning=false;
+
+  let popupDismissTimer=null;
+
+
+
+  function tryPlayOfficeAudio(){
+
+    if(!officeAudio) return;
+
+    const playPromise=officeAudio.play();
+
+    if(playPromise&&typeof playPromise.catch==='function'){
+
+      playPromise.catch(function(){});
+
+    }
+
+  }
+
+
+
+  tryPlayOfficeAudio();
+
+  window.addEventListener('pointerdown',tryPlayOfficeAudio,{once:true});
+
+
+
+  function clearPopupDismissTimer(){
+
+    if(!popupDismissTimer) return;
+
+    clearTimeout(popupDismissTimer);
+
+    popupDismissTimer=null;
+
+  }
+
+
+
+  function dismissPopupWithShake(onDone){
+
+    if(!popup.classList.contains('show')){
+
+      if(typeof onDone==='function') onDone();
+
+      return;
+
+    }
+
+    clearPopupDismissTimer();
+
+    popup.classList.add('dismissing');
+
+    popupDismissTimer=setTimeout(function(){
+
+      popup.classList.remove('show');
+
+      popup.classList.remove('dismissing');
+
+      popupDismissTimer=null;
+
+      if(typeof onDone==='function') onDone();
+
+    },360);
+
+  }
+
+
+
+  function showPopup(src,text){
+
+    clearPopupDismissTimer();
+
+    popup.classList.remove('dismissing');
+
+    popupImg.src=src;
+
+    popupText.textContent=text;
+
+    partnerMode=false;
+
+    wheelCount=0;
+
+    corridorImg.style.transform='scale(1)';
+
+    complimentDialog.classList.remove('show');
+
+    blueTint.classList.add('show');
+
+    popup.classList.add('show');
+
+  }
+
+
+
+  function showBottomDialog(text){
+
+    complimentText.textContent=text;
+
+    complimentDialog.classList.add('show');
+
+  }
+
+
+
+  marker1.addEventListener('click',function(e){
+
+    e.stopPropagation();
+
+    showPopup('珊瑚.jpg','Coral reef habitat, full of hidden life.');
+
+  });
+
+
+
+  marker2.addEventListener('click',function(e){
+
+    e.stopPropagation();
+
+    showPopup('鱼群.jpg','A flowing school of fish, like a silver river.');
+
+  });
+
+
+
+  marker3.addEventListener('click',function(e){
+
+    e.stopPropagation();
+
+    clearPopupDismissTimer();
+
+    popup.classList.remove('show');
+
+    popup.classList.remove('dismissing');
+
+    blueTint.classList.remove('show');
+
+    showBottomDialog("Oh my, it's already this late! I should go meet my partner!");
+
+    partnerMode=true;
+
+    wheelCount=0;
+
+    isTransitioning=false;
+
+    corridorImg.style.transform='scale(1)';
+
+  });
+
+
+
+  function startTransitionToFish(){
+
+    if(isTransitioning) return;
+
+    isTransitioning=true;
+
+    partnerMode=false;
+
+    blackOverlay.classList.add('show');
+
+    setTimeout(function(){window.location.href='fish.html';},1900);
+
+  }
+
+
+
+  popup.addEventListener('click',function(e){
+
+    e.stopPropagation();
+
+  });
+
+
+
+  window.addEventListener('wheel',function(e){
+
+    if(!partnerMode) return;
+
+    wheelCount+=1;
+
+    corridorImg.style.transform=`scale(${1 + wheelCount * 0.15})`;
+
+    if(wheelCount>=2){
+
+      startTransitionToFish();
+
+    }
+
+  },{passive:true});
+
+
+
+  document.addEventListener('click',function(){
+
+    const hadPopup=popup.classList.contains('show');
+
+    if(hadPopup){
+
+      dismissPopupWithShake(function(){
+
+        blueTint.classList.remove('show');
+
+        showBottomDialog("It's really so beautiful.");
+
+      });
+
+      return;
+
+    }
+
+
+
+    blueTint.classList.remove('show');
+
+    if(partnerMode){
+
+      startTransitionToFish();
+
+      return;
+
+    }
+
+    complimentDialog.classList.remove('show');
+
+  });
+
+})();
+
+</script>
+
+</body>
+
+</html>
+

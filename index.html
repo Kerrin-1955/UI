@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Envelope Scene</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:100vw;height:100vh;overflow:hidden;position:relative;background:#000;font-family:"Microsoft YaHei",sans-serif}
+.pixel-text{font-family:"Press Start 2P","Pixel Emulator","Courier New",monospace;letter-spacing:.08em;line-height:1.6;color:#fff;text-shadow:1px 0 0 rgba(0,0,0,.95),-1px 0 0 rgba(0,0,0,.95),0 1px 0 rgba(0,0,0,.95),0 -1px 0 rgba(0,0,0,.95),2px 0 0 rgba(0,0,0,.8),-2px 0 0 rgba(0,0,0,.8),0 2px 0 rgba(0,0,0,.8),0 -2px 0 rgba(0,0,0,.8);-webkit-font-smoothing:none;font-smooth:never;image-rendering:pixelated}
+@keyframes floatCenter{0%{transform:translate(-50%,-50%) scale(1) translateY(0)}50%{transform:translate(-50%,-50%) scale(1) translateY(-6px)}100%{transform:translate(-50%,-50%) scale(1) translateY(0)}}
+@keyframes floatBottomCenter{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}100%{transform:translateX(-50%) translateY(0)}}
+@keyframes floatFullscreen{0%{transform:translate(0,0) translateY(0)}50%{transform:translate(0,0) translateY(-6px)}100%{transform:translate(0,0) translateY(0)}}
+.bg{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;user-select:none;-webkit-user-drag:none}
+.blue-filter{position:fixed;inset:0;background:rgba(6,28,64,0);z-index:5;pointer-events:none;transition:background 2500ms ease}
+.blue-filter.active{background:rgba(4,18,44,.66)}
+.blue-filter.end{background:rgba(2,9,28,.96);z-index:99}
+.white-boxes{position:fixed;inset:0;z-index:8;pointer-events:none}
+.white-box{position:absolute;width:96px;height:62px;background:transparent;border:none;color:transparent;font-size:30px;pointer-events:auto;cursor:pointer;user-select:none}
+.white-box--1{left:17%;top:38%;transform:scale(2) rotate(90deg);transform-origin:center}
+.white-box--2{left:47%;top:22%;transform:scale(5);transform-origin:center}
+.white-box--3{left:75%;top:67%}
+.white-box--4{left:18%;top:68%;transform:scale(4) rotate(90deg);transform-origin:center}
+.white-box--5{left:88%;top:72%;transform:rotate(90deg);transform-origin:center}
+.envelope{position:fixed;left:50%;top:80%;width:min(260px,34vw);transform:translate(-50%,-50%) scale(1);z-index:10;cursor:pointer;transition:transform 800ms cubic-bezier(.2,.85,.2,1),top 800ms cubic-bezier(.2,.85,.2,1),opacity 500ms ease;user-select:none;-webkit-user-drag:none}
+.envelope.zoomed{top:50%;transform:translate(-50%,-50%) scale(1.9);cursor:default}
+.envelope.hide{opacity:0;pointer-events:none}
+.opened-envelope{position:fixed;left:50%;top:50%;width:min(700px,86vw);transform:translate(-50%,-50%) scale(.92);z-index:12;opacity:0;pointer-events:none;transition:opacity 2600ms ease,transform 2600ms ease;user-select:none;-webkit-user-drag:none}
+.opened-envelope.show{opacity:1;transform:translate(-50%,-50%) scale(1);animation:floatCenter 3.4s ease-in-out infinite 2600ms}
+.offer-image{position:fixed;left:50%;top:50%;width:min(560px,62vw);transform:translate(-50%,-50%) scale(.9);z-index:13;opacity:0;pointer-events:none;transition:opacity 2200ms ease,transform 2200ms ease;user-select:none;-webkit-user-drag:none;padding:12px;background:repeating-linear-gradient(0deg,#fff 0 6px,#f3f3f3 6px 12px),repeating-linear-gradient(90deg,rgba(255,255,255,.95) 0 6px,rgba(239,239,239,.95) 6px 12px);border:2px solid #fff;box-shadow:0 0 0 2px #d8d8d8,0 0 0 4px #fff;image-rendering:pixelated}
+.offer-image.show{opacity:1;transform:translate(-50%,-50%) scale(1);animation:floatCenter 3.4s ease-in-out infinite 2200ms}
+.bottom-dialog{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%) scale(.94);width:min(1360px,100vw);z-index:20;opacity:0;visibility:hidden;transition:opacity 900ms ease,transform 900ms ease;pointer-events:none}
+.bottom-dialog.show{opacity:1;visibility:visible;transform:translateX(-50%) scale(1);animation:floatBottomCenter 3.2s ease-in-out infinite 900ms}
+.bottom-dialog img{width:100%;height:auto;display:block;user-select:none;-webkit-user-drag:none;filter:sepia(.22) saturate(1.08) hue-rotate(-8deg)}
+.bottom-dialog__text{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);width:84%;text-align:center;font-size:clamp(20px,2vw,32px);color:#fff;font-family:"Arial Black","Microsoft YaHei UI","Microsoft YaHei",sans-serif;font-weight:900;letter-spacing:.02em;line-height:1.2}
+.center-card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.92);z-index:22;width:min(980px,92vw);text-align:center;opacity:0;visibility:hidden;transition:opacity 900ms ease,transform 900ms ease;pointer-events:none}
+.center-card.show{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1);animation:floatCenter 3.2s ease-in-out infinite 900ms}
+.center-card img{width:100%;height:auto;max-height:74vh;object-fit:contain;background:transparent}
+.center-card--fullscreen{left:0;top:0;width:100vw;height:100vh;transform:translate(0,0) scale(.96)}
+.center-card--fullscreen.show{transform:translate(0,0) scale(1);animation:floatFullscreen 3.2s ease-in-out infinite 900ms}
+.center-card--fullscreen img{width:100vw;height:90vh;max-height:none;object-fit:cover}
+.center-card__text{margin-top:16px;font-size:clamp(20px,1.8vw,30px);color:#fff;font-family:"Arial Black","Microsoft YaHei UI","Microsoft YaHei",sans-serif;font-weight:900;letter-spacing:.02em;line-height:1.2}
+.center-card--fullscreen .center-card__text{position:fixed;left:50%;bottom:1.5vh;transform:translateX(-50%);margin-top:0;width:94vw}
+.admission-text{position:fixed;left:50%;bottom:8vh;transform:translateX(-50%) scale(.96);z-index:24;font-size:clamp(19px,1.7vw,30px);text-align:center;width:min(1000px,92vw);opacity:0;transition:opacity 2600ms ease,transform 2600ms ease;pointer-events:none;color:#fff}
+.admission-text.show{opacity:1;transform:translateX(-50%) scale(1);animation:floatBottomCenter 3.4s ease-in-out infinite 2200ms}
+</style>
+</head>
+<body>
+<audio id="officeAudio" src="音乐/办公室.mp3" autoplay loop></audio>
+<img class="bg" src="图片放置/桌面.jpg" alt="桌面背景" />
+<div class="blue-filter" id="blueFilter"></div>
+<div class="white-boxes">
+  <div class="white-box white-box--1" data-box="1">1</div>
+  <div class="white-box white-box--2" data-box="2">2</div>
+  <div class="white-box white-box--3" data-box="3">3</div>
+  <div class="white-box white-box--4" data-box="4">4</div>
+  <div class="white-box white-box--5" data-box="5">5</div>
+</div>
+<img id="envelope" class="envelope" src="信封.png" alt="信封" />
+<img id="openedEnvelope" class="opened-envelope" src="打开的信封.png" alt="打开的信封" />
+<img id="offerImage" class="offer-image" src="offer.png" alt="offer" />
+<div class="bottom-dialog" id="bottomDialog"><img src="对话框.png" alt="对话框" /><div class="bottom-dialog__text pixel-text" id="bottomDialogText"></div></div>
+<div class="center-card" id="centerCard"><img id="centerCardImg" src="" alt="展示图片" /><div class="center-card__text pixel-text" id="centerCardText"></div></div>
+<div class="admission-text pixel-text" id="admissionText">I was admitted by the aquarium and officially became a whale trainer.</div>
+<script>
+(function(){
+  const officeAudio=document.getElementById('officeAudio');
+  const openedEnvelope=document.getElementById('openedEnvelope');
+  const offerImage=document.getElementById('offerImage');
+  const blueFilter=document.getElementById('blueFilter');
+  const boxEls=document.querySelectorAll('.white-box');
+  const bottomDialog=document.getElementById('bottomDialog');
+  const bottomDialogText=document.getElementById('bottomDialogText');
+  const centerCard=document.getElementById('centerCard');
+  const centerCardImg=document.getElementById('centerCardImg');
+  const centerCardText=document.getElementById('centerCardText');
+  const admissionText=document.getElementById('admissionText');
+  let isOpenedState=false,isExpanded=false,isTransitioning=false;
+
+  function tryPlayOfficeAudio(){
+    if(!officeAudio) return;
+    const playPromise=officeAudio.play();
+    if(playPromise&&typeof playPromise.catch==='function'){
+      playPromise.catch(function(){});
+    }
+  }
+
+  tryPlayOfficeAudio();
+  window.addEventListener('pointerdown',tryPlayOfficeAudio,{once:true});
+
+  function hasInfoPanelVisible(){return bottomDialog.classList.contains('show')||centerCard.classList.contains('show')||offerImage.classList.contains('show')}
+  function updateBlueFilter(){if(isExpanded||hasInfoPanelVisible()) blueFilter.classList.add('active'); else blueFilter.classList.remove('active')}
+  function hideInfoPanels(){bottomDialog.classList.remove('show');centerCard.classList.remove('show');centerCard.classList.remove('center-card--fullscreen');offerImage.classList.remove('show');updateBlueFilter()}
+  function showBottomDialog(text){centerCard.classList.remove('show');centerCard.classList.remove('center-card--fullscreen');offerImage.classList.remove('show');bottomDialogText.textContent=text;bottomDialog.classList.add('show');updateBlueFilter()}
+  function showCenterCard(imageSrc,text,fullscreen){bottomDialog.classList.remove('show');offerImage.classList.remove('show');centerCardImg.src=imageSrc;centerCardText.textContent=text;fullscreen?centerCard.classList.add('center-card--fullscreen'):centerCard.classList.remove('center-card--fullscreen');centerCard.classList.add('show');updateBlueFilter()}
+  function resetToOrigin(){isExpanded=false;isOpenedState=false;envelope.classList.remove('zoomed');envelope.classList.remove('hide');openedEnvelope.classList.remove('show');offerImage.classList.remove('show');admissionText.classList.remove('show');hideInfoPanels();updateBlueFilter()}
+
+  envelope.addEventListener('click',function(e){e.stopPropagation();if(isExpanded||isTransitioning) return;isExpanded=true;envelope.classList.add('zoomed');updateBlueFilter()});
+  document.addEventListener('click',function(e){const clickedEnvelope=e.target.closest('#envelope');const clickedOpened=e.target.closest('#openedEnvelope');const clickedOffer=e.target.closest('#offerImage');const clickedBox=e.target.closest('.white-box');if(clickedEnvelope||clickedOpened||clickedOffer||clickedBox) return;if(isExpanded) resetToOrigin();else hideInfoPanels()});
+
+  window.addEventListener('wheel',function(e){
+    if(!isExpanded||isOpenedState||isTransitioning) return;
+    if(e.deltaY<0){
+      isOpenedState=true;
+      envelope.classList.add('hide');
+      openedEnvelope.classList.add('show');
+      setTimeout(function(){
+        offerImage.classList.add('show');
+        admissionText.classList.add('show');
+        updateBlueFilter();
+      },2300);
+      setTimeout(function(){
+        isTransitioning=true;
+        blueFilter.classList.add('end');
+        setTimeout(function(){window.location.href='come.html';},1000);
+      },10300);
+    }
+  },{passive:true});
+
+  boxEls.forEach(function(box){box.addEventListener('click',function(e){e.stopPropagation();const id=box.dataset.box;if(id==='1') showBottomDialog("Just a cup, NOTHING's special.");else if(id==='2') showCenterCard('电脑屏幕.jpg',"UNFINISHED work, and I don't wanna do it.",false);else if(id==='3') showBottomDialog('The old mouse provided by the company when I joined has a loose conection.');else if(id==='4') showCenterCard('涂鸦本.png','My spare time doodles.',true);else if(id==='5') showCenterCard('日程表.png','BUSY scheduel.',false);})});
+})();
+</script>
+</body>
+</html>

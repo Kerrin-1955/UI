@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Come Scene</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:100vw;height:100vh;overflow:hidden;position:relative;background:#020817;font-family:"Microsoft YaHei",sans-serif}
+body.screen-shake{animation:screenShake 280ms ease-out}
+.pixel-text{font-family:"Press Start 2P","Pixel Emulator","Courier New",monospace;letter-spacing:.06em;line-height:1.6;-webkit-font-smoothing:none;font-smooth:never;image-rendering:pixelated}
+.scene-bg{position:fixed;inset:0;background:#031026;z-index:1}
+.gate{position:fixed;inset:0;width:100vw;height:100vh;object-fit:cover;transform:scale(1);transform-origin:center center;z-index:3;transition:transform 1600ms ease,opacity 1500ms ease;opacity:1;user-select:none;-webkit-user-drag:none}
+.gate.zoom{transform:scale(1.2)}
+.dialog{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%);width:min(1320px,98vw);z-index:6;opacity:0;visibility:hidden;transition:opacity 900ms ease;pointer-events:none}
+.dialog.show{opacity:1;visibility:visible}
+.dialog img{width:100%;height:auto;display:block;filter:sepia(.2) saturate(1.06) hue-rotate(-8deg)}
+.dialog-text{position:absolute;left:6%;right:6%;top:55%;transform:translateY(-50%);text-align:left;color:#231d24;font-family:"Arial Black","Microsoft YaHei UI","Microsoft YaHei",sans-serif;font-size:clamp(17px,1.45vw,24px);font-weight:900;letter-spacing:.02em;line-height:1.2}
+.black-overlay{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:9;transition:opacity 2200ms ease}
+.black-overlay.show{opacity:1}
+@keyframes screenShake{
+  0%{transform:translate3d(0,0,0)}
+  20%{transform:translate3d(-8px,3px,0)}
+  40%{transform:translate3d(7px,-4px,0)}
+  60%{transform:translate3d(-6px,2px,0)}
+  80%{transform:translate3d(5px,-2px,0)}
+  100%{transform:translate3d(0,0,0)}
+}
+</style>
+</head>
+<body>
+<audio id="gateAudio" src="音乐/大门.mp3" autoplay></audio>
+<div class="scene-bg"></div>
+<img id="gate" class="gate" src="水族馆大门.jpg" alt="水族馆大门" />
+<div id="dialog" class="dialog">
+  <img src="对话框.png" alt="对话框" />
+  <div id="dialogText" class="dialog-text pixel-text"></div>
+</div>
+<div id="blackOverlay" class="black-overlay"></div>
+
+<script>
+(function(){
+  const gateAudio=document.getElementById('gateAudio');
+  const gate=document.getElementById('gate');
+  const dialog=document.getElementById('dialog');
+  const dialogText=document.getElementById('dialogText');
+  const blackOverlay=document.getElementById('blackOverlay');
+  const body=document.body;
+
+  let stage=0;
+  let shakeTimer=null;
+
+  function tryPlayGateAudio(){
+    if(!gateAudio) return;
+    const playPromise=gateAudio.play();
+    if(playPromise&&typeof playPromise.catch==='function'){
+      playPromise.catch(function(){});
+    }
+  }
+
+  tryPlayGateAudio();
+  window.addEventListener('pointerdown',tryPlayGateAudio,{once:true});
+
+  function showDialog(text){dialogText.textContent=text;dialog.classList.add('show')}
+  function hideDialog(){dialog.classList.remove('show')}
+  function triggerScreenShake(){
+    if(!body) return;
+    body.classList.remove('screen-shake');
+    if(shakeTimer){
+      clearTimeout(shakeTimer);
+      shakeTimer=null;
+    }
+    void body.offsetWidth;
+    body.classList.add('screen-shake');
+    shakeTimer=setTimeout(function(){
+      body.classList.remove('screen-shake');
+      shakeTimer=null;
+    },280);
+  }
+
+  setTimeout(function(){
+    showDialog('This will be my workplace from now on. What a magnificent gate!');
+    stage=1;
+  },5000);
+
+  window.addEventListener('wheel',function(e){
+    if(stage===0||stage===5) return;
+
+    triggerScreenShake();
+
+    if(e.deltaY<0){
+      if(stage===1){
+        gate.classList.add('zoom');
+        hideDialog();
+        setTimeout(function(){
+          showDialog("There are so many visitors even on weekdays. Looks like I'm going to be busy from now on.");
+          stage=2;
+        },900);
+      } else if(stage===2){
+        stage=5;
+        hideDialog();
+        blackOverlay.classList.add('show');
+        setTimeout(function(){window.location.href='corridor.html';},2400);
+      }
+    }
+
+    if(e.deltaY>0){
+      gate.classList.remove('zoom');
+      if(stage===2){
+        showDialog('WAIT, have I really made up my mind?');
+        stage=3;
+      } else if(stage===3){
+        hideDialog();
+        setTimeout(function(){
+          showDialog('I think i should leave anyway and go back to that cubicle.');
+          stage=4;
+          setTimeout(function(){
+            stage=5;
+            blackOverlay.classList.add('show');
+            setTimeout(function(){window.location.href='cubicle.html';},2400);
+          },1600);
+        },350);
+      }
+    }
+  },{passive:true});
+})();
+</script>
+</body>
+</html>

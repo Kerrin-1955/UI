@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Third</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+
+#tidyImg{
+  position:fixed;inset:0;z-index:1;
+  width:100%;height:100%;object-fit:cover;
+  opacity:0;
+  transition:opacity 2200ms ease;
+}
+
+#exclaim{
+  position:fixed;
+  left:40%;top:40%;
+  transform:translate(-50%,-50%);
+  z-index:2;
+  opacity:0;
+  transition:opacity 400ms ease;
+  font-family:'Press Start 2P','Courier New',monospace;
+  font-size:clamp(80px,14vw,160px);
+  font-weight:900;
+  color:#FFD600;
+  text-shadow:
+    6px 0 0 #000,
+    -6px 0 0 #000,
+    0 6px 0 #000,
+    0 -6px 0 #000,
+    6px 6px 0 #000,
+    -6px 6px 0 #000,
+    6px -6px 0 #000,
+    -6px -6px 0 #000;
+  line-height:1;
+  pointer-events:none;
+  image-rendering:pixelated;
+  letter-spacing:.05em;
+}
+#exclaim.pop{
+  animation:exclaimPop 0.35s cubic-bezier(.2,1.6,.4,1) forwards;
+}
+@keyframes exclaimPop{
+  0%  {transform:translate(-50%,-50%) scale(0.2);opacity:0;}
+  60% {transform:translate(-50%,-50%) scale(1.25);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(1);opacity:1;}
+}
+
+#lookBackImg{
+  position:fixed;inset:0;z-index:3;
+  width:100%;height:100%;object-fit:cover;
+  opacity:0;
+  transition:opacity 1800ms ease;
+}
+</style>
+</head>
+<body>
+<audio id="dailyAudio" src="音乐/日常.mp3" loop></audio>
+<audio id="uneasyAudio" src="音乐/不安.mp3" loop></audio>
+<audio id="crisisAudio" src="音乐/危险.mp3" loop></audio>
+<audio id="whaleCryAudio" src="音乐/鲸鱼叫声.mp3" preload="auto"></audio>
+<img id="tidyImg" src="图片放置/整理.jpg" alt="整理" />
+<div id="exclaim">!</div>
+<img id="lookBackImg" src="回头.jpg" alt="回头" />
+<img id="stareImg" src="stare.jpg" alt="stare" style="position:fixed;inset:0;z-index:4;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1800ms ease;" />
+
+<!-- dim overlay -->
+<div id="dimOverlay" style="position:fixed;inset:0;z-index:5;background:rgba(0,0,0,0);transition:background 1400ms ease;pointer-events:none;"></div>
+
+<!-- 眼.jpg 从左上角 -->
+<div id="eyeFrame" style="position:fixed;left:10%;top:4%;z-index:6;width:50vw;height:50vw;max-width:54vh;max-height:54vh;opacity:0;transition:opacity 1200ms ease, transform 1400ms ease;transform:translate(-30px,-30px);outline:4px solid #fff;outline-offset:4px;box-shadow:0 0 0 8px #000,0 0 0 12px #fff;overflow:hidden;">
+  <img src="眼.jpg" alt="眼" style="width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated;" />
+</div>
+
+<!-- 嘴.jpg 从右下角 -->
+<img id="mouthImg" src="嘴.jpg" alt="嘴" style="position:fixed;right:2%;bottom:4%;z-index:6;width:44vw;height:auto;max-height:48vh;object-fit:contain;opacity:0;transition:opacity 1200ms ease, transform 1400ms ease;transform:translate(30px,30px);outline:4px solid #fff;outline-offset:4px;box-shadow:0 0 0 8px #000,0 0 0 12px #fff;" />
+
+<!-- 下水.jpg -->
+<div id="divingScene" style="position:fixed;inset:0;z-index:7;opacity:0;transition:opacity 1200ms ease;">
+  <img src="下水.jpg" alt="下水" style="width:100%;height:100%;object-fit:cover;display:block;" />
+  <div id="divingDim" style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 1200ms ease;"></div>
+  <div id="divingText" style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:8vw;gap:0.9em;"></div>
+</div>
+
+<!-- 水里.jpg -->
+<div id="underwaterScene" style="position:fixed;inset:0;z-index:8;opacity:0;transition:opacity 1200ms ease;">
+  <img src="水里.jpg" alt="水里" style="width:100%;height:100%;object-fit:cover;display:block;" />
+  <div id="underwaterDim" style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 1200ms ease;"></div>
+  <div id="underwaterText" style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:8vw;gap:0.9em;"></div>
+</div>
+
+<style>
+.px-line{
+  font-family:'Press Start 2P','Courier New',monospace;
+  font-size:clamp(11px,1.4vw,18px);
+  font-weight:900;
+  color:#fff;
+  letter-spacing:.04em;
+  opacity:0;
+  transform:translateY(6px);
+  transition:opacity 500ms ease, transform 500ms ease;
+  white-space:nowrap;
+}
+.px-line.show{
+  opacity:1;
+  transform:translateY(0);
+}
+</style>
+
+<script>
+function showLines(containerId,lines,onDone){
+  var container=document.getElementById(containerId);
+  container.innerHTML='';
+  lines.forEach(function(txt){
+    var div=document.createElement('div');
+    div.className='px-line';
+    div.textContent=txt;
+    container.appendChild(div);
+  });
+  var els=container.querySelectorAll('.px-line');
+  els.forEach(function(el,i){ setTimeout(function(){ el.classList.add('show'); },i*380); });
+  if(typeof onDone==='function') setTimeout(onDone,lines.length*380+600);
+}
+</script>
+
+<script>
+window.addEventListener('DOMContentLoaded',function(){
+  var dailyAudio=document.getElementById('dailyAudio');
+  var uneasyAudio=document.getElementById('uneasyAudio');
+  var crisisAudio=document.getElementById('crisisAudio');
+  var whaleCryAudio=document.getElementById('whaleCryAudio');
+  var whaleCryTimer=null;
+
+  function tryPlay(audioEl){
+    if(!audioEl) return;
+    var p=audioEl.play();
+    if(p&&typeof p.catch==='function') p.catch(function(){});
+  }
+
+  function playWhaleCry(){
+    if(!whaleCryAudio) return;
+    try{ whaleCryAudio.currentTime=0; }catch(err){}
+    tryPlay(whaleCryAudio);
+  }
+
+  function stopWhaleCryTimer(){
+    if(!whaleCryTimer) return;
+    clearTimeout(whaleCryTimer);
+    whaleCryTimer=null;
+  }
+
+  function scheduleWhaleCryLoop(){
+    stopWhaleCryTimer();
+    var delay=5000+Math.random()*1000;
+    whaleCryTimer=setTimeout(function(){
+      playWhaleCry();
+      scheduleWhaleCryLoop();
+    },delay);
+  }
+
+  function fadeOut(audioEl,durationMs,onDone){
+    if(!audioEl) return;
+    var steps=18;
+    var stepMs=Math.max(30,Math.floor(durationMs/steps));
+    var startVol=audioEl.volume;
+    var i=0;
+    var t=setInterval(function(){
+      i++;
+      var p=i/steps;
+      audioEl.volume=Math.max(0,startVol*(1-p));
+      if(i>=steps){
+        clearInterval(t);
+        audioEl.pause();
+        audioEl.currentTime=0;
+        audioEl.volume=startVol;
+        if(typeof onDone==='function') onDone();
+      }
+    },stepMs);
+  }
+
+  function fadeIn(audioEl,durationMs,targetVol){
+    if(!audioEl) return;
+    var vol=targetVol==null?1:targetVol;
+    audioEl.volume=0;
+    tryPlay(audioEl);
+    var steps=18;
+    var stepMs=Math.max(30,Math.floor(durationMs/steps));
+    var i=0;
+    var t=setInterval(function(){
+      i++;
+      var p=i/steps;
+      audioEl.volume=Math.min(vol,vol*p);
+      if(i>=steps) clearInterval(t);
+    },stepMs);
+  }
+
+  // start daily immediately
+  tryPlay(dailyAudio);
+  window.addEventListener('pointerdown',function(){
+    tryPlay(dailyAudio);
+    tryPlay(whaleCryAudio);
+  },{once:true});
+
+  var tidy=document.getElementById('tidyImg');
+  var exclaim=document.getElementById('exclaim');
+  var lookBack=document.getElementById('lookBackImg');
+
+  // Step 1: 整理.jpg slowly appears
+  setTimeout(function(){
+    tidy.style.opacity='1';
+  },200);
+
+  // Step 2: 3s after tidy appears, show ! + whale cry
+  setTimeout(function(){
+    exclaim.style.opacity='1';
+    exclaim.classList.add('pop');
+    playWhaleCry();
+  },200+3000);
+
+  // Step 3: 2s after !, 回头.jpg fades in
+  setTimeout(function(){
+    lookBack.style.opacity='1';
+  },200+3000+2000);
+
+  // Step 4: 2s after 回头, stare.jpg fades in
+  setTimeout(function(){
+    document.getElementById('stareImg').style.opacity='1';
+  },200+3000+2000+2000);
+
+  // Step 5: 2s after stare, dim + 眼/嘴 slide in
+  setTimeout(function(){
+    document.getElementById('dimOverlay').style.background='rgba(0,0,0,0.65)';
+    setTimeout(function(){
+      var eye=document.getElementById('eyeFrame');
+      var mouth=document.getElementById('mouthImg');
+      eye.style.opacity='1';
+      eye.style.transform='translate(0,0)';
+      setTimeout(function(){
+        mouth.style.opacity='1';
+        mouth.style.transform='translate(0,0)';
+        // 3s after 嘴 appears, show 下水
+        setTimeout(function(){
+          var div=document.getElementById('divingScene');
+          div.style.opacity='1';
+          // 1s later dim + text
+          setTimeout(function(){
+            document.getElementById('divingDim').style.background='rgba(0,0,0,0.62)';
+            setTimeout(function(){
+              showLines('divingText',[
+                'I went into the water anyway',
+                'but I couldn\u2019t shake a bad feeling.',
+                'Its eyes made me uneasy.'
+              ],null);
+            },600);
+          },1000);
+          // 3s later show 水里
+          setTimeout(function(){
+            var uw=document.getElementById('underwaterScene');
+            uw.style.opacity='1';
+            // 2s later dim + text
+            setTimeout(function(){
+              document.getElementById('underwaterDim').style.background='rgba(0,0,0,0.62)';
+              setTimeout(function(){
+                showLines('underwaterText',[
+                  'At first',
+                  'it acted no different from usual',
+                  'cooperating with me actively.',
+                  'But suddenly\u2026'
+                ],function(){
+                  setTimeout(function(){ if(window._startWaterGame) window._startWaterGame(); },1000);
+                });
+              },600);
+            },2000);
+          },3000);
+        },3000);
+      },1000);
+    },400);
+  },200+3000+2000+2000+2000);
+
+  // crossfade + whale cry loop when entering left/right control
+  window._startWaterGame=function(){
+    fadeOut(dailyAudio,1800,function(){
+      fadeIn(uneasyAudio,1800,1);
+    });
+    scheduleWhaleCryLoop();
+    window.dispatchEvent(new Event('startGame'));
+  };
+});
+</script>
+
+<!-- 空水背景 -->
+<div id="gameScene" style="position:fixed;inset:0;z-index:14;opacity:0;transition:opacity 1200ms ease;">
+  <img src="空海.jpg" alt="空水" style="width:100%;height:100%;object-fit:cover;display:block;" />
+
+  <!-- 人物png -->
+  <img id="charImg" src="人物.png" alt="人物" style="position:absolute;bottom:65%;left:50%;transform:translateX(-50%);width:min(300px,40vw);height:auto;transition:left 0.4s ease;" />
+
+  <!-- 鲸鱼第一视角png -->
+  <img id="whaleEye" src="鲸鱼第一视角.png" alt="鲸鱼视角" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(1000px,140vw);height:auto;transition:left 0.3s ease;" />
+
+  <div id="gameBlur" style="position:absolute;inset:0;z-index:1;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);pointer-events:none;transition:backdrop-filter 200ms,background 200ms;"></div>
+  <div id="gameRed" style="position:absolute;inset:0;z-index:2;background:rgba(180,0,0,0);pointer-events:none;transition:background 200ms;"></div>
+  <div id="gameHud" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:12px;color:#fff;text-shadow:2px 2px #000;white-space:nowrap;"></div>
+  <div id="gameResult" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:clamp(28px,5vw,52px);font-weight:900;color:#fff;text-shadow:4px 4px 0 #000,-4px 4px 0 #000,4px -4px 0 #000,-4px -4px 0 #000;opacity:0;transition:opacity 400ms ease;"></div>
+</div>
+
+<script>
+(function(){
+  // ---- Mini-game: 跟踪人物 ----
+  var GAME_DURATION=35000; // 20s total
+  var gameActive=false;
+  var gameTimer=null;
+  var gameTimeLeft=GAME_DURATION;
+  var charPos=50;
+  var whalePos=50;
+  var positions=[10,28,50,72,90];
+  var moveInterval=4000; // initial
+  var moveTimer=null;
+  var elapsed=0;
+  var success=false;
+  var missCount=0;
+
+  var charEl=document.getElementById('charImg');
+  var whaleEl=document.getElementById('whaleEye');
+  var hud=document.getElementById('gameHud');
+  var result=document.getElementById('gameResult');
+  var scene=document.getElementById('gameScene');
+
+  // Show game after 水里 text (3s after underwater dim)
+  // We hook into underwaterDim shown timing
+  // underwater starts at: 200+3000+3000+1000+3000 = ~10200ms + text
+  // Just use a window event dispatched from existing flow
+  window.addEventListener('startGame', startGame);
+
+  function startGame(){
+    // show scene on top
+    if(scene){
+      scene.style.opacity='1';
+      scene.style.pointerEvents='auto';
+    }
+    gameActive=true;
+    missCount=0;
+    charPos=50;
+    whalePos=50;
+    elapsed=0;
+    moveInterval=2000;
+    updatePositions();
+    scheduleMoveChar();
+    gameTimer=setInterval(function(){
+      elapsed+=100;
+      gameTimeLeft=Math.max(0,GAME_DURATION-elapsed);
+      hud.textContent='TIME: '+(gameTimeLeft/1000).toFixed(1)+'s';
+      // Update blur and red filter based on progress
+      var t=elapsed/GAME_DURATION;
+      var blurPx=Math.round(t*t*10); // 0 -> 10px
+      var redAlpha=Math.min(0.45, t*t*0.5);
+      var blurEl=document.getElementById('gameBlur');
+      var redEl=document.getElementById('gameRed');
+      if(blurEl){
+        blurEl.style.backdropFilter='blur('+blurPx+'px)';
+        blurEl.style.webkitBackdropFilter='blur('+blurPx+'px)';
+      }
+      if(redEl) redEl.style.background='rgba(180,0,0,'+redAlpha+')';
+      var fxB=document.getElementById('fxBlur');var fxR=document.getElementById('fxRed');
+      if(fxB){fxB.style.backdropFilter='blur('+blurPx+'px)';fxB.style.webkitBackdropFilter='blur('+blurPx+'px)';}
+      if(fxR) fxR.style.background='rgba(180,0,0,'+redAlpha+')';
+      // dynamic shake amplitude
+      var shakePct2=Math.max(0,(t-0.4)/0.6);
+      var shakeAmt=Math.round(shakePct2*6);
+      var shakeStyle=document.getElementById('dynamicShakeStyle');
+      if(!shakeStyle){
+        shakeStyle=document.createElement('style');
+        shakeStyle.id='dynamicShakeStyle';
+        document.head.appendChild(shakeStyle);
+      }
+      if(shakeAmt>0){
+        shakeStyle.textContent='@keyframes gameShake{0%,100%{transform:translate(0,0)}25%{transform:translate(-'+shakeAmt+'px,'+Math.round(shakeAmt*0.75)+'px)}50%{transform:translate('+shakeAmt+'px,-'+Math.round(shakeAmt*0.75)+'px)}75%{transform:translate(-'+Math.round(shakeAmt*0.6)+'px,-'+shakeAmt+'px)}}';
+      }
+      var sceneEl=document.getElementById('gameScene');
+      if(t>0.4&&sceneEl){
+        // shake intensity: starts slow (0.5s period) ramps to fast (0.08s)
+        var shakePct=Math.max(0,(t-0.4)/0.6); // 0 at 40%, 1 at 100%
+        var shakeDur=Math.max(0.08, 0.5-shakePct*0.42); // 0.5s -> 0.08s
+        var shakeAmt=Math.round(shakePct*5); // 0 -> 5px
+        if(shakeAmt>0){
+          sceneEl.style.animation='gameShake '+shakeDur+'s linear infinite';
+        }
+      }
+      if(elapsed>=GAME_DURATION){ endGame(true); }
+    },100);
+  }
+
+  function scheduleMoveChar(){
+    if(!gameActive) return;
+    // speed ramp: every 4s interval shrinks by 15%
+    var t=elapsed/GAME_DURATION;
+    moveInterval=Math.max(500, 4000*Math.pow(1-t,1.4));
+    moveTimer=setTimeout(function(){
+      if(!gameActive) return;
+      // move char randomly left or right 10-30%
+      var positions=[10,28,50,72,90];
+      var curIdx=positions.indexOf(charPos);
+      if(curIdx===-1) curIdx=2;
+      var t2=elapsed/GAME_DURATION;
+      var reach=t2>0.6?2:1;
+      var options=[];
+      for(var d=-reach;d<=reach;d++){
+        if(d!==0&&curIdx+d>=0&&curIdx+d<=4) options.push(curIdx+d);
+      }
+      var newIdx=options[Math.floor(Math.random()*options.length)];
+      charPos=positions[newIdx];
+      updatePositions();
+      scheduleMoveChar();
+    }, moveInterval);
+  }
+
+  function updatePositions(){
+    charEl.style.left=charPos+'%';
+    whaleEl.style.left=whalePos+'%';
+  }
+
+  function checkAlignment(){
+    return charPos===whalePos;
+  }
+
+  function tryAlign(dir){
+    if(!gameActive) return;
+    var positions=[10,28,50,72,90];
+    var wi=positions.reduce(function(best,v,i){return Math.abs(v-whalePos)<Math.abs(positions[best]-whalePos)?i:best;},0);
+    wi=Math.max(0,Math.min(4,wi+(dir)));
+    whalePos=positions[wi];
+    updatePositions();
+    // check after move
+    if(!checkAlignment()){
+      // flash fail
+      flashResult('MISS!', '#f44');
+      // reset whale to center
+      setTimeout(function(){
+        whalePos=50;
+        charPos=50;
+        updatePositions();
+      },600);
+    }
+  }
+
+  function flashResult(msg,color){
+    result.textContent=msg;
+    result.style.color=color||'#FFD600';
+    result.style.opacity='1';
+    setTimeout(function(){ result.style.opacity='0'; },800);
+  }
+
+  function endGame(won){
+    gameActive=false;
+    clearInterval(gameTimer);
+    clearTimeout(moveTimer);
+    if(won){
+      // switch music: uneasy -> crisis
+      var uneasyAudio=document.getElementById('uneasyAudio');
+      var crisisAudio=document.getElementById('crisisAudio');
+      if(uneasyAudio){
+        uneasyAudio.pause();
+        uneasyAudio.currentTime=0;
+      }
+      if(crisisAudio){
+        crisisAudio.currentTime=0;
+        crisisAudio.play().catch(function(){});
+      }
+      flashResult('CLEAR!','#4f4');
+      setTimeout(showSuccessScreen,1200);
+    }
+  }
+
+  function showSuccessScreen(){
+    var el=document.getElementById('successScreen');
+    el.style.opacity='1';
+    el.style.pointerEvents='auto';
+    el.classList.add('shaking');
+
+    // Fade out blur over 3s
+    var fxB=document.getElementById('fxBlur');
+    if(fxB){
+      fxB.style.transition='backdrop-filter 3000ms ease';
+      fxB.style.backdropFilter='blur(0px)';
+      fxB.style.webkitBackdropFilter='blur(0px)';
+    }
+    var gameBlur=document.getElementById('gameBlur');
+    if(gameBlur){
+      gameBlur.style.transition='backdrop-filter 3000ms ease';
+      gameBlur.style.backdropFilter='blur(0px)';
+      gameBlur.style.webkitBackdropFilter='blur(0px)';
+    }
+
+    // Raise face frames above red overlay (z-index 21 > fxRed z-index 19)
+    ['closedEyeImg','eyeImg2','mouthImg2','openMouthImg'].forEach(function(id){
+      var el2=document.getElementById(id);
+      if(el2) el2.style.zIndex='21';
+    });
+
+    setTimeout(function(){
+      document.getElementById('successDim').style.background='rgba(0,0,0,0.65)';
+      var faces=['closedEyeImg','eyeImg2','mouthImg2','openMouthImg','flipperImg'];
+      faces.forEach(function(id,i){
+        setTimeout(function(){
+          var img=document.getElementById(id);
+          img.style.opacity='1';
+          img.classList.add('shake');
+        },i*1500);
+      });
+      // after all 5 faces (5*1500=7500ms), 3s pause then 咬人
+      setTimeout(function(){
+        var bite=document.getElementById('biteImg');
+        bite.style.opacity='1';
+        bite.classList.add('shake');
+        setTimeout(function(){
+          // instant blackout
+          var eb=document.getElementById('endBlack2');
+          eb.style.opacity='1';
+          // 0.1s blue flash then back to black
+          setTimeout(function(){
+            var bf=document.getElementById('blueFlash');
+            bf.style.opacity='1';
+            setTimeout(function(){
+              bf.style.opacity='0';
+              // 2s later 咬住jpg fast appear
+              setTimeout(function(){
+                var bfi=document.getElementById('biteFullImg');
+                bfi.style.opacity='1';
+                // keep shaking
+                bfi.classList.add('shaking');
+                // 3s later blackout + blue flash again
+                setTimeout(function(){
+                  var eb2=document.getElementById('endBlack2');
+                  eb2.style.opacity='1';
+                  setTimeout(function(){
+                    var bf2=document.getElementById('blueFlash');
+                    bf2.style.opacity='1';
+                    setTimeout(function(){
+                      bf2.style.opacity='0';
+                      // show 向下.jpg after short blackout
+                      setTimeout(function(){
+                        // fade out black overlay
+                        var eb=document.getElementById('endBlack2');
+                        eb.style.transition='opacity 300ms ease';
+                        eb.style.opacity='0';
+                        var ds=document.getElementById('downScene');
+                        ds.style.opacity='1';
+                        ds.classList.add('shaking');
+                        // 3s later dim + 惊恐.jpg
+                        setTimeout(function(){
+                          document.getElementById('downDim').style.background='rgba(0,0,0,0.6)';
+                          setTimeout(function(){
+                            var hl=document.getElementById('horrorLeft');
+                            var hr=document.getElementById('horrorRight');
+                            hl.style.opacity='1'; hl.classList.add('shake'); hl.classList.add('shaking');
+                            setTimeout(function(){ hr.style.opacity='1'; hr.classList.add('shake'); hr.classList.add('shaking'); },2000);
+                            // 5s after both appear, swap to 眼+流泪
+                            setTimeout(function(){
+                              hl.style.opacity='0';
+                              hr.style.opacity='0';
+                              setTimeout(function(){
+                                var et1=document.getElementById('eyeTear1');
+                                var et2=document.getElementById('eyeTear2');
+                                et1.style.opacity='1'; et1.classList.add('shake'); et1.classList.add('shaking');
+                                setTimeout(function(){ et2.style.opacity='1'; et2.classList.add('shake'); et2.classList.add('shaking');
+                                  // 3s later show 安详.jpg, gradually stop shaking
+                                  setTimeout(function(){
+                                    document.getElementById('peacefulScene').style.opacity='1';
+                                    // gradually slow shake by increasing duration
+                                    var shakeEl=document.getElementById('peacefulScene');
+                                    shakeEl.style.animation='gameShake 0.08s linear infinite';
+                                    var dur=0.08;
+                                    var slowInterval=setInterval(function(){
+                                      dur+=0.06;
+                                      if(dur>=1.5){
+                                        clearInterval(slowInterval);
+                                        // stop all shaking elements
+                                        ['gameScene','successScreen','biteFullImg','downScene','horrorLeft','horrorRight','eyeTear1','eyeTear2','peacefulScene'].forEach(function(id){
+                                          var el2=document.getElementById(id);
+                                          if(el2){ el2.style.animation='none'; el2.classList.remove('shaking'); }
+                                        });
+                                        var ds2=document.getElementById('dynamicShakeStyle');
+                                        if(ds2) ds2.textContent='';
+                                      } else {
+                                        var styleEl=document.getElementById('dynamicShakeStyle');
+                                        if(styleEl) styleEl.textContent='@keyframes gameShake{0%,100%{transform:translate(0,0)}25%{transform:translate(-4px,3px)}50%{transform:translate(4px,-3px)}75%{transform:translate(-3px,-4px)}}';
+                                        ['gameScene','successScreen','biteFullImg','downScene','horrorLeft','horrorRight','eyeTear1','eyeTear2','peacefulScene'].forEach(function(id){
+                                          var el2=document.getElementById(id);
+                                          if(el2&&el2.classList.contains('shaking')) el2.style.animation='gameShake '+dur+'s linear infinite';
+                                        });
+                                      }
+                                    },300);
+                                  },3000);
+                                },400);
+                              },500);
+                            },5000);
+                          },600);
+                        },3000);
+                      },400);
+                    },500);
+                  },80);
+                },3000);
+              },2000);
+            },500);
+          },80);
+        },2000);
+      },5*1500+3000);
+    },2000);
+  }
+
+  // Keyboard controls: A = left, D = right
+  document.addEventListener('keydown',function(e){
+    if(!gameActive) return;
+    if(e.code==='KeyA') tryAlign(-1);
+    else if(e.code==='KeyD') tryAlign(1);
+  });
+
+  // Expose startGame trigger
+  window._startWaterGame=function(){
+    scene.style.opacity='1';
+    setTimeout(startGame,1200);
+  };
+})();
+</script>
+<style>
+@keyframes shake{
+  0%,100%{transform:translate(0,0)}
+  20%{transform:translate(-3px,2px)}
+  40%{transform:translate(3px,-2px)}
+  60%{transform:translate(-2px,3px)}
+  80%{transform:translate(2px,-3px)}
+}
+@keyframes choicePulse{
+  0%,100%{opacity:0.45;}
+  50%{opacity:0.95;}
+}
+@keyframes gameShake{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(-4px,3px)}
+  50%{transform:translate(4px,-3px)}
+  75%{transform:translate(-3px,-4px)}
+}
+#gameScene.shaking,#successScreen.shaking,#biteFullImg.shaking,#downScene.shaking,#horrorLeft.shaking,#horrorRight.shaking,#eyeTear1.shaking,#eyeTear2.shaking{
+  animation:gameShake 0.08s linear infinite;
+}
+.shake{
+  animation:shake 0.12s linear infinite;
+}
+.face-frame{
+  position:fixed;
+  width:38vw;
+  height:38vw;
+  max-width:42vh;
+  max-height:42vh;
+  z-index:20;
+  opacity:0;
+  transition:opacity 800ms ease;
+  outline:4px solid #fff;
+  outline-offset:4px;
+  box-shadow:0 0 0 8px #000,0 0 0 12px #fff;
+  overflow:hidden;
+}
+.face-frame img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+</style>
+
+<div id="successScreen" style="position:fixed;inset:0;z-index:15;opacity:0;transition:opacity 1000ms ease;pointer-events:none;">
+  <img src="跟随成功.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" />
+  <div id="successDim" style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 1200ms ease;"></div>
+  <div id="closedEyeImg" class="face-frame" style="top:4%;left:4%;z-index:21;"><img src="闭眼.jpg" /></div>
+  <div id="closedEyeImg" class="face-frame" style="top:4%;left:4%;z-index:21;"><img src="闭眼.jpg" /></div>
+  <div id="eyeImg2" class="face-frame" style="top:4%;right:4%;z-index:21;"><img src="眼.jpg" /></div>
+  <div id="mouthImg2" class="face-frame" style="bottom:4%;left:4%;z-index:21;"><img src="嘴.jpg" /></div>
+  <div id="openMouthImg" class="face-frame" style="bottom:4%;right:4%;z-index:21;"><img src="张嘴.jpg" /></div>
+
+  <!-- 脚蹼居中偏上 -->
+  <div id="flipperImg" class="face-frame" style="top:10%;left:30%;transform:translateX(-50%);z-index:22;width:auto;height:auto;max-width:44vw;max-height:36vh;opacity:0;transition:opacity 800ms ease;"><img src="脚蹼.jpg" style="width:auto;height:auto;max-width:44vw;max-height:36vh;object-fit:contain;display:block;" /></div>
+
+  <!-- 咬人居中偏下 -->
+  <div id="biteImg" class="face-frame" style="bottom:8%;left:40%;transform:translateX(-50%);z-index:22;width:50vw;height:50vw;max-width:42vh;max-height:42vh;opacity:0;transition:opacity 800ms ease;"><img src="咬人.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>
+</div>
+
+<div id="endBlack2" style="position:fixed;inset:0;z-index:25;background:#000;opacity:0;transition:opacity 80ms ease;pointer-events:none;"></div>
+<div id="blueFlash" style="position:fixed;inset:0;z-index:26;background:#001a4d;opacity:0;pointer-events:none;"></div>
+<div id="biteFullImg" style="position:fixed;inset:0;z-index:27;opacity:0;transition:opacity 80ms ease;pointer-events:none;"><img src="咬住.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>
+
+<!-- 向下.jpg -->
+<div id="downScene" style="position:fixed;inset:0;z-index:28;opacity:0;transition:opacity 600ms ease;pointer-events:none;">
+  <img src="向下.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" />
+  <div id="downDim" style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 1200ms ease;"></div>
+</div>
+
+<!-- 惊恐+吓哭 split -->
+<div id="horrorScene" style="position:fixed;inset:0;z-index:30;opacity:1;pointer-events:none;display:flex;">
+  <div id="horrorLeft" class="face-frame" style="position:absolute;left:2%;top:4%;width:72vw;height:auto;z-index:30;opacity:0;transition:opacity 600ms ease;overflow:hidden;outline:4px solid #fff;outline-offset:4px;box-shadow:0 0 0 8px #000,0 0 0 12px #fff;"><img src="shock.png" style="width:100%;height:auto;object-fit:contain;display:block;" /></div>
+  <div id="horrorRight" class="face-frame" style="position:absolute;right:2%;top:4%;width:72vw;height:auto;z-index:30;opacity:0;transition:opacity 600ms ease;overflow:hidden;outline:4px solid #fff;outline-offset:4px;box-shadow:0 0 0 8px #000,0 0 0 12px #fff;"><img src="吓哭.jpg" style="width:100%;height:auto;object-fit:contain;display:block;" /></div>
+
+  <!-- 眼+流泪 -->
+  <div id="eyeTear1" class="face-frame" style="position:absolute;left:2%;top:4%;width:72vw;height:auto;z-index:31;opacity:0;transition:opacity 600ms ease;overflow:hidden;outline:4px solid #fff;outline-offset:4px;box-shadow:0 0 0 8px #000,0 0 0 12px #fff;"><img src="眼.jpg" style="width:100%;height:auto;object-fit:contain;display:block;" /></div>
+  <div id="eyeTear2" class="face-frame" style="position:absolute;right:2%;top:4%;width:72vw;height:auto;z-index:31;opacity:0;transition:opacity 600ms ease;overflow:hidden;outline:4px solid #fff;outline-offset:4px;box-shadow:0 0 0 8px #000,0 0 0 12px #fff;"><img src="流泪.jpg" style="width:100%;height:auto;object-fit:contain;display:block;" /></div>
+</div>
+
+<!-- 安详.jpg 全屏 -->
+<div id="peacefulScene" style="position:fixed;inset:0;z-index:32;opacity:0;transition:opacity 1500ms ease;pointer-events:none;">
+  <img src="安详.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" />
+</div>
+
+<!-- 选择黑屏 -->
+<div id="choiceBlack" style="position:fixed;inset:0;z-index:40;background:#000;opacity:0;transition:opacity 800ms ease;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2em;">
+  <p style="font-family:'Arial Black','Microsoft YaHei UI','Microsoft YaHei',sans-serif;font-size:clamp(24px,3.2vw,48px);font-weight:900;color:#fff;text-align:center;line-height:1.3;letter-spacing:.08em;text-transform:uppercase;">"IF IT WERE YOU,<br>WHAT WOULD YOU DO?"</p>
+  <div style="display:flex;gap:2.2em;">
+    <button onclick="window.location.href='forth.html'" style="font-family:'Arial Black','Microsoft YaHei UI','Microsoft YaHei',sans-serif;font-size:clamp(22px,2.6vw,42px);font-weight:900;color:#fff;background:transparent;border:none;padding:.6em 1.2em;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;opacity:0.65;animation:choicePulse 2.6s ease-in-out infinite;">DROWN HER</button>
+    <button onclick="window.location.href='fifth.html'" style="font-family:'Arial Black','Microsoft YaHei UI','Microsoft YaHei',sans-serif;font-size:clamp(22px,2.6vw,42px);font-weight:900;color:#fff;background:transparent;border:none;padding:.6em 1.2em;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;opacity:0.65;animation:choicePulse 2.6s ease-in-out infinite;animation-delay:1.1s;">LET HER GO</button>
+  </div>
+</div>
+<div id="fxBlur" style="position:fixed;inset:0;z-index:18;backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);pointer-events:none;"></div>
+<div id="fxRed" style="position:fixed;inset:0;z-index:19;background:rgba(180,0,0,0);pointer-events:none;"></div>
+
+<script>
+// Space key triggers choice screen after 安详 appears
+document.addEventListener('keydown',function(e){
+  if(e.code==='Space'){
+    var ps=document.getElementById('peacefulScene');
+    if(ps&&parseFloat(ps.style.opacity)>=0.9){
+      e.preventDefault();
+      var cb=document.getElementById('choiceBlack');
+      cb.style.opacity='1';
+      cb.style.pointerEvents='auto';
+
+      var dailyAudio=document.getElementById('dailyAudio');
+      var uneasyAudio=document.getElementById('uneasyAudio');
+      var crisisAudio=document.getElementById('crisisAudio');
+      var whaleCryAudio=document.getElementById('whaleCryAudio');
+      [dailyAudio,uneasyAudio,crisisAudio].forEach(function(a){
+        if(a){ a.pause(); a.currentTime=0; }
+      });
+      if(whaleCryAudio){
+        try{ whaleCryAudio.currentTime=0; }catch(err){}
+        whaleCryAudio.play().catch(function(){});
+        setInterval(function(){
+          try{ whaleCryAudio.currentTime=0; }catch(err){}
+          whaleCryAudio.play().catch(function(){});
+        },15000);
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

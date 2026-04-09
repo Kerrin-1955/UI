@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cubicle</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:100vw;height:100vh;overflow:hidden;background:#000;position:relative}
+.desk{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.again-btn{
+  position:fixed;
+  left:50%;
+  bottom:7vh;
+  transform:translateX(-50%);
+  padding:16px 30px;
+  border:3px solid #8fc7ff;
+  background:repeating-linear-gradient(0deg,#2b6fd8 0 8px,#1f57b0 8px 16px);
+  color:#eaf5ff;
+  font-family:"Press Start 2P","Pixel Emulator","Courier New",monospace;
+  font-size:18px;
+  letter-spacing:.08em;
+  text-shadow:2px 2px 0 rgba(0,0,0,.45);
+  box-shadow:0 0 0 3px rgba(9,35,78,.9),0 10px 24px rgba(0,0,0,.35);
+  cursor:pointer;
+  image-rendering:pixelated;
+}
+.again-btn:hover{filter:brightness(1.08)}
+</style>
+</head>
+<body>
+<audio id="officeAudio" src="音乐/办公室.mp3" autoplay loop></audio>
+<img class="desk" src="图片放置/桌面.jpg" alt="桌面" />
+<button class="again-btn" id="againBtn">Again</button>
+<script>
+  const officeAudio=document.getElementById('officeAudio');
+
+  function tryPlayOfficeAudio(){
+    if(!officeAudio) return;
+    const playPromise=officeAudio.play();
+    if(playPromise&&typeof playPromise.catch==='function'){
+      playPromise.catch(function(){});
+    }
+  }
+
+  tryPlayOfficeAudio();
+  window.addEventListener('pointerdown',tryPlayOfficeAudio,{once:true});
+  document.getElementById('againBtn').addEventListener('click',function(){
+    window.location.href='come.html';
+  });
+</script>
+</body>
+</html>

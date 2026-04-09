@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Second</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+.video-wrap{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  opacity:0;
+  transition:opacity 1800ms ease;
+}
+.video-wrap.show{opacity:1}
+video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+.ball-overlay{position:fixed;inset:0;z-index:99999;opacity:0;transition:opacity 800ms ease;pointer-events:none}
+.ball-overlay.show{opacity:1}
+.ball-overlay img{width:100%;height:100%;object-fit:cover;display:block}
+#pickupLabel{
+  position:fixed;
+  left:50%;
+  top:calc(42% - 110px - 60px);
+  transform:translateX(-50%);
+  z-index:100001;
+  opacity:0;
+  transition:opacity 600ms ease;
+  font-family:'Press Start 2P','Courier New',monospace;
+  font-size:clamp(22px,4vw,38px);
+  font-weight:900;
+  color:#fff;
+  letter-spacing:.08em;
+  white-space:nowrap;
+  pointer-events:none;
+}
+#pickupOverlay{
+  position:fixed;inset:0;z-index:300000;
+  background:rgba(0,0,0,0);
+  transition:background 600ms ease;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+#pickupOverlay.show{
+  background:rgba(0,0,0,0.72);
+  pointer-events:auto;
+}
+#pickupFrame{
+  opacity:0;
+  transition:opacity 600ms ease;
+  image-rendering:pixelated;
+  outline:6px solid #fff;
+  outline-offset:6px;
+  box-shadow:0 0 0 10px #000,0 0 0 14px #fff,0 0 0 18px #000;
+  max-width:min(1200px,95vw);
+  max-height:95vh;
+  object-fit:contain;
+  display:block;
+}
+#pickupOverlay.show #pickupFrame{opacity:1;}
+
+/* 空手png */
+#emptyHandImg{
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
+  height:auto;
+  z-index:450000;
+  opacity:0;
+  transition:opacity 700ms ease;
+  pointer-events:none;
+  object-fit:cover;
+  transform-origin:bottom center;
+}
+#emptyHandImg.floating{
+  animation:handFloat 3s ease-in-out infinite;
+}
+@keyframes handFloat{
+  0%  {transform:translateY(0)}
+  50% {transform:translateY(18px)}
+  100%{transform:translateY(0)}
+}
+
+/* 球png */
+#ballThrow{
+  position:fixed;
+  left:50%;
+  top:75%;
+  transform:translate(-50%,-50%) scale(1);
+  z-index:460000;
+  opacity:0;
+  pointer-events:none;
+  width:min(260px,35vw);
+  height:auto;
+}
+
+/* 摄像头canvas */
+#camCanvas{
+  position:fixed;
+  left:10px;
+  top:10px;
+  width:200px;
+  height:150px;
+  z-index:600000;
+  opacity:0;
+  transition:opacity 500ms ease;
+  pointer-events:none;
+  border:2px solid rgba(255,255,255,0.4);
+  border-radius:4px;
+  object-fit:cover;
+}
+#camStatus{
+  position:fixed;
+  left:10px;
+  top:168px;
+  z-index:600001;
+  color:rgba(255,255,255,0.7);
+  font-size:11px;
+  font-family:monospace;
+  pointer-events:none;
+}
+</style>
+</head>
+<body>
+<audio id="dailyThrowAudio" src="音乐/日常抛球.mp3" autoplay loop></audio>
+<audio id="throwSfxAudio" src="音乐/抛球音效.mp3" preload="auto"></audio>
+<div class="video-wrap" id="videoWrap">
+  <video id="mainVideo" src="训练前.mp4" preload="auto" playsinline autoplay muted></video>
+</div>
+<script>
+window.addEventListener('DOMContentLoaded',function(){
+  var wrap=document.getElementById('videoWrap');
+  var vid=document.getElementById('mainVideo');
+  var dailyThrowAudio=document.getElementById('dailyThrowAudio');
+  function tryPlayDailyThrowAudio(){
+    if(!dailyThrowAudio) return;
+    dailyThrowAudio.play().catch(function(){});
+  }
+  function startPlay(){
+    wrap.classList.add('show');
+    vid.play().catch(function(){});
+    tryPlayDailyThrowAudio();
+  }
+  if(vid.readyState>=3){ setTimeout(startPlay,100); }
+  else { vid.addEventListener('canplay',startPlay,{once:true}); setTimeout(startPlay,800); }
+  vid.load();
+  window.addEventListener('pointerdown',tryPlayDailyThrowAudio,{once:true});
+});
+</script>
+<script>
+window.addEventListener('keydown',function(e){
+  if(e.code==='Space'){
+    e.preventDefault();
+    var img=document.getElementById('ballImg');
+    if(img) img.classList.add('show');
+    setTimeout(function(){
+      var rect=document.getElementById('whiteRect');
+      if(rect) rect.style.opacity='1';
+    },800);
+  }
+});
+</script>
+
+<div class="ball-overlay" id="ballImg"><img src="ball.jpg" alt="ball" /></div>
+<div id="whiteRect" style="position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);width:220px;height:220px;background:transparent;z-index:100000;border-radius:50%;opacity:0;transition:opacity 600ms ease;cursor:pointer;"></div>
+<div id="pickupLabel">PICK IT UP.</div>
+
+<div id="pickupOverlay">
+  <img id="pickupFrame" src="拿起.jpg" alt="拿起" />
+</div>
+
+<!-- background overlay -->
+<div id="bgOverlay" style="position:fixed;inset:0;z-index:400000;opacity:0;transition:opacity 400ms ease;pointer-events:none;">
+  <img src="play/play1.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" />
+</div>
+
+<!-- 空手png -->
+<img id="emptyHandImg" src="hand.png" alt="hand" />
+
+<!-- 球png -->
+<img id="ballThrow" src="球.png" alt="球" />
+
+<!-- flash overlay -->
+<div id="flashOverlay" style="position:fixed;inset:0;z-index:470000;opacity:0;transition:opacity 200ms ease;pointer-events:none;"><img src="play/play4.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" /></div>
+
+<!-- end blackout -->
+<div id="endBlackout" style="position:fixed;inset:0;z-index:500000;background:#000;opacity:0;transition:opacity 1500ms ease;pointer-events:none;"></div>
+
+<!-- 喂食/玩耍 sequence -->
+<div id="feedScene" style="position:fixed;inset:0;z-index:510000;opacity:0;transition:opacity 800ms ease;pointer-events:none;">
+  <img src="喂食.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" />
+  <div id="feedDim" style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 1200ms ease;"></div>
+  <div id="feedText" style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:8vw;gap:0.9em;"></div>
+</div>
+
+<div id="playScene" style="position:fixed;inset:0;z-index:520000;opacity:0;transition:opacity 800ms ease;pointer-events:none;">
+  <img src="玩耍.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" />
+  <div id="playDim" style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 1200ms ease;"></div>
+  <div id="playText" style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:8vw;gap:0.9em;"></div>
+</div>
+
+<div id="finalBlack" style="position:fixed;inset:0;z-index:530000;background:#000;opacity:0;transition:opacity 2000ms ease;pointer-events:none;">
+  <div id="finalText" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 2000ms ease;">
+    <span style="font-family:'Press Start 2P','Courier New',monospace;font-size:clamp(18px,3vw,36px);font-weight:900;color:#fff;letter-spacing:.06em;text-align:center;">But then, that day.......</span>
+  </div>
+</div>
+
+<style>
+.px-line{
+  font-family:'Press Start 2P','Courier New',monospace;
+  font-size:clamp(11px,1.4vw,18px);
+  font-weight:900;
+  color:#fff;
+  letter-spacing:.04em;
+  opacity:0;
+  transform:translateY(6px);
+  transition:opacity 500ms ease, transform 500ms ease;
+  white-space:nowrap;
+}
+.px-line.show{
+  opacity:1;
+  transform:translateY(0);
+}
+</style>
+
+<script>
+var feedLines=[
+  'After that day',
+  'we slowly grew familiar with each other.',
+  'I often brought snacks to see it',
+  'and spent some time playing with it.',
+  'And its favorite',
+  'always',
+  'was fresh small fish.',
+  'Every time it saw me approaching',
+  'it would swim over cheerfully',
+  'waiting for me to feed its little delicious treat.'
+];
+var playLines=[
+  'Day by day',
+  'we grew more and more in tune with each other.',
+  'I trained with it',
+  'and played freely with it in the water.',
+  'Clever and lively',
+  'it could follow every little instruction with ease.',
+  'When tired',
+  'it would rest quietly beside me',
+  'flicking its tail now and then as if acting coquettishly.',
+  'Every moment spent with it',
+  'was gentle and joyful.'
+];
+
+function showLines(containerId, lines, onDone){
+  var container=document.getElementById(containerId);
+  container.innerHTML='';
+  lines.forEach(function(txt){
+    var div=document.createElement('div');
+    div.className='px-line';
+    div.textContent=txt;
+    container.appendChild(div);
+  });
+  var els=container.querySelectorAll('.px-line');
+  els.forEach(function(el,i){
+    setTimeout(function(){ el.classList.add('show'); },i*380);
+  });
+  if(typeof onDone==='function'){
+    setTimeout(onDone, lines.length*380+600);
+  }
+}
+
+// Hook into endBlackout completion
+var _origEndBlack=document.getElementById('endBlackout');
+function startEndSequence(){
+  // stop camera
+  var camVideo=document.getElementById('camVideo');
+  if(camVideo&&camVideo.srcObject){
+    camVideo.srcObject.getTracks().forEach(function(t){ t.stop(); });
+    camVideo.srcObject=null;
+  }
+  document.getElementById('camCanvas').style.opacity='0';
+  document.getElementById('camStatus').textContent='';
+
+  // Show 喂食
+  var feed=document.getElementById('feedScene');
+  feed.style.opacity='1';
+  feed.style.pointerEvents='auto';
+
+  setTimeout(function(){
+    // dim
+    document.getElementById('feedDim').style.background='rgba(0,0,0,0.62)';
+    // show lines
+    setTimeout(function(){
+      showLines('feedText', feedLines, function(){
+        // after 8s switch to 玩耍
+        setTimeout(function(){
+          var play=document.getElementById('playScene');
+          play.style.opacity='1';
+          play.style.pointerEvents='auto';
+          feed.style.opacity='0';
+
+          setTimeout(function(){
+            document.getElementById('playDim').style.background='rgba(0,0,0,0.62)';
+            setTimeout(function(){
+              showLines('playText', playLines, function(){
+                // fade to black
+                setTimeout(function(){
+                  var fb=document.getElementById('finalBlack');
+                  fb.style.opacity='1';
+                  setTimeout(function(){
+                    document.getElementById('finalText').style.opacity='1';
+                    setTimeout(function(){
+                      window.location.href='third.html';
+                    },3500);
+                  },2200);
+                },1500);
+              });
+            },800);
+          },2000);
+        },8000);
+      });
+    },800);
+  },2000);
+}
+
+// Patch endBlackout to trigger sequence after fade
+var endBlackEl=document.getElementById('endBlackout');
+endBlackEl.addEventListener('transitionend',function(){
+  if(parseFloat(endBlackEl.style.opacity)>=1){
+    setTimeout(startEndSequence,200);
+  }
+});
+</script>
+
+<div id="dialogBox" style="position:fixed;left:50%;bottom:0;transform:translateX(-50%);z-index:200000;opacity:0;pointer-events:none;transition:opacity 500ms ease;">
+  <img src="对话框.png" alt="对话框" style="display:block;width:min(1040px,160vw);height:auto;" />
+  <div id="dialogTxt" style="position:absolute;top:34%;left:50%;transform:translateX(-50%);width:90%;text-align:center;font-family:'Arial Black','Microsoft YaHei UI','Microsoft YaHei',sans-serif;font-size:clamp(18px,3vw,28px);font-weight:900;color:#222;letter-spacing:.03em;white-space:nowrap;">Training Time's Up!</div>
+</div>
+
+<!-- 隐藏摄像头 -->
+<video id="camVideo" style="display:none;" playsinline muted></video>
+<canvas id="camCanvas"></canvas>
+<div id="camStatus"></div>
+
+<script>
+var circleClicks=0;
+var play1Shown=false;
+var scrollListening=false;
+
+document.getElementById('whiteRect').addEventListener('click',function(){
+  var dlg=document.getElementById('dialogBox');
+  var txt=document.getElementById('dialogTxt');
+  circleClicks++;
+  if(circleClicks===1){
+    txt.textContent="Training Time's Up!";
+    dlg.style.opacity='1';
+    dlg.style.pointerEvents='auto';
+  } else if(circleClicks===2){
+    txt.textContent="Let's Practice Juggling!";
+    dlg.style.opacity='1';
+    dlg.style.pointerEvents='auto';
+  } else if(circleClicks===3){
+    document.getElementById('pickupOverlay').classList.add('show');
+  }
+});
+
+document.addEventListener('click',function(e){
+  var dlg=document.getElementById('dialogBox');
+  var circle=document.getElementById('whiteRect');
+  var ov=document.getElementById('pickupOverlay');
+
+  if(ov.classList.contains('show')&&!ov.querySelector('#pickupFrame').contains(e.target)&&e.target!==circle){
+    ov.classList.remove('show');
+    setTimeout(function(){
+      document.getElementById('bgOverlay').style.opacity='1';
+      play1Shown=true;
+      setTimeout(function(){
+        document.getElementById('emptyHandImg').src='hand.png';
+      document.getElementById('emptyHandImg').style.opacity='1';
+        document.getElementById('emptyHandImg').classList.add('floating');
+        scrollListening=true;
+        document.getElementById('camCanvas').style.opacity='1';
+        initCamera();
+      },900);
+    },400);
+    return;
+  }
+
+  if(parseFloat(dlg.style.opacity)>0&&!dlg.contains(e.target)&&e.target!==circle){
+    dlg.style.opacity='0';
+    dlg.style.pointerEvents='none';
+    if(circleClicks>=2){
+      document.getElementById('pickupLabel').style.opacity='1';
+    }
+  }
+});
+
+// ---- Throw logic ----
+var throwRound=0;
+var bgImages=['play/play1.jpg','play/play2.jpg','play/play3.png'];
+var flashImages=['play/play4.jpg','play/play5.jpg','play/play6.jpg'];
+var throwInProgress=false;
+
+window.addEventListener('wheel',function(e){
+  if(!scrollListening||throwInProgress) return;
+  if(e.deltaY<0){
+    scrollListening=false;
+    throwBall();
+  }
+});
+
+function triggerThrow(){
+  if(!scrollListening||throwInProgress) return;
+  scrollListening=false;
+  throwBall();
+}
+
+function throwBall(){
+  throwInProgress=true;
+  var throwSfxAudio=document.getElementById('throwSfxAudio');
+  if(throwSfxAudio){
+    try{ throwSfxAudio.currentTime=0; }catch(err){}
+    throwSfxAudio.play().catch(function(){});
+  }
+  var ball=document.getElementById('ballThrow');
+  var hand=document.getElementById('emptyHandImg');
+  var wh=window.innerHeight;
+  hand.src='抛球.png';
+  ball.style.opacity='1';
+  ball.style.top=(wh*0.75)+'px';
+  ball.style.left='50%';
+  ball.style.transform='translate(-50%,-50%) scale(4)'; // start big
+
+  var startY=wh*0.75;
+  var topY=wh*0.05;
+  var endY=wh*0.25;
+  var phase1Duration=600;
+  var phase2Duration=1200;
+  var startTime=null;
+
+  // Phase 1: rise, scale 4
+  function phase1(ts){
+    if(!startTime) startTime=ts;
+    var t=Math.min(1,(ts-startTime)/phase1Duration);
+    var y=startY+(topY-startY)*t;
+    ball.style.top=y+'px';
+    ball.style.transform='translate(-50%,-50%) scale(4)';
+    if(t<1){ requestAnimationFrame(phase1); }
+    else{ startTime=null; requestAnimationFrame(phase2); }
+  }
+
+  // Phase 2: fall, shrink from 4 to 0.6
+  function phase2(ts){
+    if(!startTime) startTime=ts;
+    var t=Math.min(1,(ts-startTime)/phase2Duration);
+    var ease=t*t;
+    var y=topY+(endY-topY)*ease;
+    var scale=4-3.4*t; // 4 -> 0.6
+    ball.style.top=y+'px';
+    ball.style.transform='translate(-50%,-50%) scale('+scale+')';
+    if(t<1){ requestAnimationFrame(phase2); }
+    else{ onThrowComplete(); }
+  }
+
+  requestAnimationFrame(phase1);
+}
+
+function onThrowComplete(){
+  var flashSrc=flashImages[throwRound];
+  var nextBgSrc=bgImages[throwRound+1];
+  var fl=document.getElementById('flashOverlay');
+  fl.querySelector('img').src=flashSrc;
+  fl.style.opacity='1';
+
+  setTimeout(function(){
+    document.getElementById('ballThrow').style.opacity='0';
+    fl.style.opacity='0';
+    throwRound++;
+    throwInProgress=false;
+    if(nextBgSrc){
+      setTimeout(function(){
+        var bg=document.getElementById('bgOverlay');
+        bg.style.opacity='0';
+        setTimeout(function(){
+          bg.querySelector('img').src=nextBgSrc;
+          setTimeout(function(){
+            bg.style.opacity='1';
+            setTimeout(function(){ scrollListening=true; },300);
+          },100);
+        },420);
+      },300);
+    } else {
+      setTimeout(function(){
+        document.getElementById('endBlackout').style.opacity='1';
+      },400);
+    }
+  },1000);
+}
+
+// ---- MediaPipe Hands gesture detection ----
+var camInited=false;
+var prevWristY=null;
+var wristHistory=[];
+var gestureArmed=true;
+
+function initCamera(){
+  if(camInited) return;
+  camInited=true;
+  document.getElementById('camStatus').textContent='摄像头初始化中...';
+
+  // Load MediaPipe Hands via CDN
+  var s1=document.createElement('script');
+  s1.src='https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js';
+  s1.onload=function(){
+    var s2=document.createElement('script');
+    s2.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+    s2.onload=function(){ startHandTracking(); };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s1);
+}
+
+function startHandTracking(){
+  var camVideo=document.getElementById('camVideo');
+  var canvas=document.getElementById('camCanvas');
+  var ctx=canvas.getContext('2d');
+
+  var hands=new Hands({locateFile:function(f){
+    return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/'+f;
+  }});
+  hands.setOptions({
+    maxNumHands:2,
+    modelComplexity:0,
+    minDetectionConfidence:0.6,
+    minTrackingConfidence:0.5
+  });
+
+  hands.onResults(function(results){
+    canvas.width=results.image.width;
+    canvas.height=results.image.height;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(results.image,0,0);
+
+    if(!results.multiHandLandmarks||results.multiHandLandmarks.length<1){
+      wristHistory=[];
+      return;
+    }
+
+    // Detect upward throw: both wrists (or one) moving fast upward
+    var landmarks=results.multiHandLandmarks;
+    var avgWristY=0;
+    var count=0;
+    landmarks.forEach(function(lm){
+      avgWristY+=lm[0].y; // wrist landmark index 0
+      count++;
+    });
+    avgWristY/=count;
+
+    wristHistory.push(avgWristY);
+    if(wristHistory.length>8) wristHistory.shift();
+
+    if(wristHistory.length>=6){
+      var dy=wristHistory[0]-wristHistory[wristHistory.length-1]; // positive = moved up
+      if(dy>0.18&&gestureArmed){ // threshold: wrist moved up >18% of frame height
+        gestureArmed=false;
+        document.getElementById('camStatus').textContent='手势识别: 抛球!';
+        triggerThrow();
+        setTimeout(function(){ gestureArmed=true; wristHistory=[]; },2000);
+      }
+    }
+  });
+
+  var camera=new Camera(camVideo,{
+    onFrame:async function(){
+      await hands.send({image:camVideo});
+    },
+    width:320,
+    height:240
+  });
+  camera.start().then(function(){
+    document.getElementById('camStatus').textContent='摄像头已就绪';
+    setTimeout(function(){ document.getElementById('camStatus').textContent=''; },3000);
+  }).catch(function(err){
+    document.getElementById('camStatus').textContent='摄像头无法访问';
+    console.warn('Camera error:',err);
+  });
+}
+</script>
+</body>
+</html>

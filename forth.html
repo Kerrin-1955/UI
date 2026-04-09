@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Forth</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+body{
+  --shakeX:0px;
+  --shakeY:0px;
+}
+body.shaking{animation:screenShake 0.08s linear infinite}
+@keyframes screenShake{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(calc(var(--shakeX) * -1),var(--shakeY))}
+  50%{transform:translate(var(--shakeX),calc(var(--shakeY) * -1))}
+  75%{transform:translate(calc(var(--shakeX) * -0.8),calc(var(--shakeY) * -1.2))}
+}
+#biteHand{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1800ms ease}
+#bgDim,#endDim,#redWash,#blackOut,#redFlash{position:fixed;inset:0;pointer-events:none}
+#bgDim{background:rgba(0,0,0,0);transition:background 800ms ease}
+#endDim{background:rgba(0,0,0,0);transition:background 1800ms ease;z-index:6}
+#redWash{background:rgba(130,0,0,0);z-index:12}
+#blackOut{background:#000;opacity:0;transition:opacity 120ms linear;z-index:13}
+#redFlash{background:rgba(180,0,0,0);transition:opacity 90ms linear;opacity:0;z-index:14}
+.eye-box{
+  position:fixed;top:50%;transform:translateY(-50%);opacity:0;transition:opacity 800ms ease;
+  padding:6px;background:#fff;box-shadow:0 0 0 6px #000,0 0 0 12px #fff;width:fit-content;height:fit-content;z-index:2
+}
+.eye-box img{display:block;width:auto;height:auto;max-width:42vw;max-height:72vh}
+#eyeLeft{left:4%}
+#eyeRight{right:4%}
+#rightZoom{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(1);transform-origin:center center;opacity:0;
+  transition:transform 6200ms cubic-bezier(.12,.7,.18,1),opacity 500ms ease;
+  padding:6px;background:#fff;box-shadow:0 0 0 6px #000,0 0 0 12px #fff;width:fit-content;height:fit-content;z-index:5
+}
+#rightZoom img{display:block;width:auto;height:auto;max-width:42vw;max-height:72vh}
+#rightZoom.zooming{opacity:1;transform:translate(-50%,-50%) scale(2.45)}
+#flashFrame{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;
+  padding:10px;background:#fff;box-shadow:0 0 0 10px #000,0 0 0 20px #fff;z-index:8
+}
+#flashFrame img{display:block;width:auto;height:auto;max-width:76vw;max-height:84vh}
+#downZoom{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(1.3);
+  width:100%;height:100%;object-fit:cover;opacity:0;
+  transition:opacity 700ms ease;z-index:11;
+}
+#questionWrap{
+  position:fixed;inset:0;z-index:15;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1.4em;pointer-events:none;
+}
+.question-line{
+  opacity:0;
+  transform:translateY(14px);
+  transition:opacity 2000ms ease,transform 2000ms ease;
+  font-family:'Arial Black','Microsoft YaHei UI','Microsoft YaHei',sans-serif;
+  font-size:clamp(16px,2vw,28px);
+  font-weight:900;
+  color:#fff;
+  letter-spacing:.06em;
+  text-align:center;
+  line-height:1.8;
+  text-shadow:0 0 6px rgba(255,255,255,0.55),0 0 18px rgba(255,255,255,0.35),2px 2px 0 #000;
+}
+.question-line.show{
+  opacity:1;
+  transform:translateY(0);
+}
+</style>
+</head>
+<body>
+<audio id="forthAudio" src="音乐/forth.mp3" autoplay loop></audio>
+<script>
+(function(){
+  var a=document.getElementById('forthAudio');
+  function tryPlay(){
+    if(!a) return;
+    var p=a.play();
+    if(p&&typeof p.catch==='function') p.catch(function(){});
+  }
+  tryPlay();
+  window.addEventListener('pointerdown',tryPlay,{once:true});
+})();
+</script>
+<img id="biteHand" src="咬手.jpg" alt="咬手" />
+<div id="bgDim"></div>
+<div id="eyeLeft" class="eye-box"><img src="图片放置/睁眼.jpg" alt="睁眼" /></div>
+<div id="eyeRight" class="eye-box"><img src="闭眼2.jpg" alt="闭眼2" /></div>
+<div id="rightZoom"><img src="闭眼2.jpg" alt="闭眼2放大" /></div>
+<div id="flashFrame"><img id="flashImg" src="轮播/a.jpg" alt="sequence" /></div>
+<div id="endDim"></div>
+<img id="downZoom" src="向下.jpg" alt="向下" />
+<div id="redWash"></div>
+<div id="blackOut"></div>
+<div id="redFlash"></div>
+<div id="questionWrap">
+  <div class="question-line" id="q1">IF YOU HAD ANOTHER CHANCE,</div>
+  <div class="question-line" id="q2">WOULD YOU STILL WALK INTO</div>
+  <div class="question-line" id="q3">THIS AQUARIUM?</div>
+</div>
+<script>
+var canJumpToEnd=false;
+setTimeout(function(){ document.getElementById('biteHand').style.opacity='1'; },400);
+setTimeout(function(){
+  document.getElementById('bgDim').style.background='rgba(0,0,0,0.45)';
+  document.getElementById('eyeLeft').style.opacity='1';
+},2000);
+setTimeout(function(){ document.getElementById('eyeRight').style.opacity='1'; },4000);
+setTimeout(function(){ document.getElementById('rightZoom').classList.add('zooming'); },5000);
+setTimeout(function(){ document.getElementById('endDim').style.background='rgba(0,0,0,0.78)'; },13200);
+
+function setChaos(progress){
+  var red=Math.min(0.45,0.45*progress);
+  document.getElementById('redWash').style.background='rgba(180,0,0,'+red+')';
+  var sx=(1+progress*5).toFixed(2)+'px';
+  var sy=(1+progress*4).toFixed(2)+'px';
+  document.body.style.setProperty('--shakeX',sx);
+  document.body.style.setProperty('--shakeY',sy);
+}
+
+function showQuestion(){
+  document.body.classList.remove('shaking');
+  document.getElementById('q1').classList.add('show');
+  setTimeout(function(){ document.getElementById('q2').classList.add('show'); },1200);
+  setTimeout(function(){ document.getElementById('q3').classList.add('show'); },2400);
+  setTimeout(function(){ canJumpToEnd=true; },3000);
+
+  var forthAudio=document.getElementById('forthAudio');
+  if(forthAudio){ forthAudio.pause(); forthAudio.currentTime=0; }
+  var whale=new Audio('音乐/鲸鱼叫声.mp3');
+  whale.play().catch(function(){});
+}
+
+function showDownAndBlackout(){
+  var down=document.getElementById('downZoom');
+  var black=document.getElementById('blackOut');
+  var flash=document.getElementById('redFlash');
+  down.style.opacity='1';
+  setTimeout(function(){
+    black.style.opacity='1';
+    setTimeout(function(){
+      flash.style.opacity='1';
+      setTimeout(function(){
+        flash.style.opacity='0';
+        setTimeout(function(){
+          showQuestion();
+        },220);
+      },90);
+    },120);
+  },5000);
+}
+
+function startFlashSequence(){
+  var frame=document.getElementById('flashFrame');
+  var img=document.getElementById('flashImg');
+  var seq=['a','b','c','d','e','f','g','h','i','j','k','l','m','n'];
+  var loopSpeeds=[150,120,95];
+  var sources=[];
+  var delays=[];
+
+  loopSpeeds.forEach(function(base,loopIdx){
+    seq.forEach(function(letter,idx){
+      sources.push('轮播/'+letter+'.jpg');
+      var wave=(idx%4===0?40:idx%4===1?-10:idx%4===2?25:-20);
+      delays.push(Math.max(55, base + wave - (loopIdx*5)));
+    });
+  });
+
+  sources.push('轮播/a.jpg','轮播/b.jpg','轮播/c.jpg','轮播/d.jpg');
+  delays.push(140,180,260,1500);
+
+  frame.style.opacity='1';
+  document.body.classList.add('shaking');
+  var i=0;
+
+  function next(){
+    img.src=sources[i];
+    setChaos(i/(sources.length-1));
+    if(i===sources.length-1){
+      setChaos(1);
+      setTimeout(showDownAndBlackout,5000);
+      return;
+    }
+    setTimeout(function(){
+      i++;
+      next();
+    }, delays[i]);
+  }
+
+  next();
+}
+
+setTimeout(startFlashSequence,15100);
+document.addEventListener('keydown',function(e){
+  if((e.code==='Space'||e.key===' ')&&canJumpToEnd){
+    e.preventDefault();
+    window.location.href='end.html';
+  }
+});
+</script>
+</body>
+</html>

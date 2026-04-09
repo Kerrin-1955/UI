@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fifth</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+#biteHand{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:0;
+  transition:opacity 1800ms ease;
+}
+#bgDim,#endDim,#blurFx,#finalBlack,#poolBlack,#questionBlack{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+}
+#bgDim{background:rgba(0,0,0,0);transition:background 800ms ease}
+#endDim{background:rgba(0,0,0,0);transition:background 1800ms ease;z-index:6}
+#blurFx{
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  background:rgba(255,255,255,0.03);
+  opacity:0;
+  z-index:7;
+}
+#finalBlack{background:#000;opacity:0;transition:opacity 1200ms ease;z-index:10}
+#poolBlack{background:#000;opacity:0;transition:opacity 1400ms ease;z-index:16}
+#questionBlack{background:#000;opacity:0;transition:opacity 1200ms ease;z-index:21}
+.eye-box{
+  position:fixed;top:50%;transform:translateY(-50%);opacity:0;transition:opacity 800ms ease;
+  padding:6px;background:#fff;box-shadow:0 0 0 6px #000,0 0 0 12px #fff;width:fit-content;height:fit-content;z-index:2
+}
+.eye-box img{display:block;width:auto;height:auto;max-width:42vw;max-height:72vh}
+#eyeLeft{left:4%}
+#eyeRight{right:4%}
+#rightZoom{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(1);transform-origin:center center;opacity:0;
+  transition:transform 6200ms cubic-bezier(.12,.7,.18,1),opacity 500ms ease;
+  padding:6px;background:#fff;box-shadow:0 0 0 6px #000,0 0 0 12px #fff;width:fit-content;height:fit-content;z-index:5
+}
+#rightZoom img{display:block;width:auto;height:auto;max-width:42vw;max-height:72vh}
+#rightZoom.zooming{opacity:1;transform:translate(-50%,-50%) scale(2.45)}
+#flashFrame{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);opacity:0;
+  padding:10px;background:#fff;box-shadow:0 0 0 10px #000,0 0 0 20px #fff;z-index:8
+}
+#flashFrame img{display:block;width:auto;height:auto;max-width:74vw;max-height:82vh}
+#tearCenter{
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+  opacity:0;transition:opacity 900ms ease;z-index:11;
+}
+#tearCenter img{display:block;max-width:74vw;max-height:84vh;width:auto;height:auto}
+.side-plain{
+  position:fixed;top:0;bottom:0;opacity:0;transition:opacity 900ms ease;z-index:12;
+}
+.side-plain img{display:block;height:100vh;width:auto}
+#mouthFrame{left:0}
+#upFrame{right:0}
+#poolScene{
+  position:fixed;inset:0;opacity:0;transition:opacity 1200ms ease;z-index:17;
+}
+#poolScene img{width:100%;height:100%;object-fit:cover;display:block}
+#poolDim{
+  position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 1800ms ease;
+}
+#poolTextWrap,
+#questionWrap{
+  position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;
+}
+#poolTextWrap{z-index:18;gap:1.2em}
+#questionWrap{z-index:22;gap:1.4em}
+.px-line,
+.question-line{
+  opacity:0;
+  transform:translateY(14px);
+  transition:opacity 2000ms ease,transform 2000ms ease;
+  font-family:'Arial Black','Microsoft YaHei UI','Microsoft YaHei',sans-serif;
+  font-size:clamp(16px,2vw,28px);
+  font-weight:900;
+  color:#fff;
+  letter-spacing:.06em;
+  text-align:center;
+  line-height:1.8;
+}
+.px-line.show,
+.question-line.show{opacity:1;transform:translateY(0)}
+.question-line{
+  text-shadow:0 0 6px rgba(255,255,255,0.55),0 0 18px rgba(255,255,255,0.35),2px 2px 0 #000;
+}
+</style>
+</head>
+<body>
+<audio id="fifthAudio" src="音乐/fifth.mp3" autoplay loop></audio>
+<script>
+(function(){
+  var a=document.getElementById('fifthAudio');
+  function tryPlay(){
+    if(!a) return;
+    var p=a.play();
+    if(p&&typeof p.catch==='function') p.catch(function(){});
+  }
+  tryPlay();
+  window.addEventListener('pointerdown',tryPlay,{once:true});
+})();
+</script>
+<img id="biteHand" src="咬手.jpg" alt="咬手" />
+<div id="bgDim"></div>
+<div id="eyeLeft" class="eye-box"><img src="图片放置/睁眼.jpg" alt="睁眼" /></div>
+<div id="eyeRight" class="eye-box"><img src="闭眼2.jpg" alt="闭眼2" /></div>
+<div id="rightZoom"><img src="闭眼2.jpg" alt="闭眼2放大" /></div>
+<div id="flashFrame"><img id="flashImg" src="轮播/1.jpg" alt="sequence" /></div>
+<div id="blurFx"></div>
+<div id="endDim"></div>
+<div id="finalBlack"></div>
+<div id="tearCenter"><img src="流泪.jpg" alt="流泪" /></div>
+<div id="mouthFrame" class="side-plain"><img src="张嘴2.jpg" alt="张嘴2" /></div>
+<div id="upFrame" class="side-plain"><img src="向上.jpg" alt="向上" /></div>
+<div id="poolBlack"></div>
+<div id="poolScene">
+  <img src="池底.jpg" alt="池底" />
+  <div id="poolDim"></div>
+</div>
+<div id="poolTextWrap">
+  <div class="px-line" id="pool1">AFTER THAT DAY,</div>
+  <div class="px-line" id="pool2">IT SANK TO THE BOTTOM OF THE POOL</div>
+  <div class="px-line" id="pool3">AND NEVER CAME UP TO BREATHE AGAIN.</div>
+</div>
+<div id="questionBlack"></div>
+<div id="questionWrap">
+  <div class="question-line" id="q1">IF YOU HAD ANOTHER CHANCE,</div>
+  <div class="question-line" id="q2">WOULD YOU STILL WALK INTO</div>
+  <div class="question-line" id="q3">THAT AQUARIUM?</div>
+</div>
+<script>
+var canJumpToEnd=false;
+setTimeout(function(){ document.getElementById('biteHand').style.opacity='1'; },400);
+setTimeout(function(){
+  document.getElementById('bgDim').style.background='rgba(0,0,0,0.45)';
+  document.getElementById('eyeLeft').style.opacity='1';
+},2000);
+setTimeout(function(){ document.getElementById('eyeRight').style.opacity='1'; },4000);
+setTimeout(function(){ document.getElementById('rightZoom').classList.add('zooming'); },5000);
+setTimeout(function(){ document.getElementById('endDim').style.background='rgba(0,0,0,0.78)'; },13200);
+
+function setBlur(progress){
+  var blurEl=document.getElementById('blurFx');
+  var px=(16-(16*progress)).toFixed(2);
+  blurEl.style.opacity=String(1-progress*0.9);
+  blurEl.style.backdropFilter='blur('+px+'px)';
+  blurEl.style.webkitBackdropFilter='blur('+px+'px)';
+}
+
+function showQuestionFinal(){
+  var qb=document.getElementById('questionBlack');
+  qb.style.opacity='1';
+  setTimeout(function(){ document.getElementById('q1').classList.add('show'); },800);
+  setTimeout(function(){ document.getElementById('q2').classList.add('show'); },1600);
+  setTimeout(function(){ document.getElementById('q3').classList.add('show'); },2400);
+  setTimeout(function(){ canJumpToEnd=true; },3000);
+
+  var fifthAudio=document.getElementById('fifthAudio');
+  if(fifthAudio){ fifthAudio.pause(); fifthAudio.currentTime=0; }
+  var whale=new Audio('音乐/鲸鱼叫声.mp3');
+  whale.play().catch(function(){});
+}
+
+function showPoolEnding(){
+  var poolBlack=document.getElementById('poolBlack');
+  var pool=document.getElementById('poolScene');
+  var dim=document.getElementById('poolDim');
+  poolBlack.style.opacity='1';
+  setTimeout(function(){
+    pool.style.opacity='1';
+    setTimeout(function(){
+      dim.style.background='rgba(0,0,0,0.52)';
+      setTimeout(function(){ document.getElementById('pool1').classList.add('show'); },500);
+      setTimeout(function(){ document.getElementById('pool2').classList.add('show'); },1100);
+      setTimeout(function(){ document.getElementById('pool3').classList.add('show'); },1700);
+      setTimeout(function(){
+        showQuestionFinal();
+      },5200);
+    },800);
+  },1200);
+}
+
+function startFinalSequence(){
+  var black=document.getElementById('finalBlack');
+  var frame=document.getElementById('flashFrame');
+  var tear=document.getElementById('tearCenter');
+  var mouth=document.getElementById('mouthFrame');
+  var up=document.getElementById('upFrame');
+
+  setTimeout(function(){
+    black.style.opacity='1';
+    setTimeout(function(){
+      frame.style.opacity='0';
+      tear.style.opacity='1';
+      setTimeout(function(){
+        tear.style.opacity='0';
+        setTimeout(function(){
+          mouth.style.opacity='1';
+          setTimeout(function(){
+            up.style.opacity='1';
+            setTimeout(function(){
+              showPoolEnding();
+            },2200);
+          },2000);
+        },1200);
+      },2200);
+    },1300);
+  },2000);
+}
+
+function startNumberSequence(){
+  var frame=document.getElementById('flashFrame');
+  var img=document.getElementById('flashImg');
+  var seq=['1','2','3','4','5','6','7','8','9','10'];
+  var loopSpeeds=[35,41,48,58,71,88,110];
+  var sources=[];
+  var delays=[];
+
+  loopSpeeds.forEach(function(base,loopIdx){
+    seq.forEach(function(num,idx){
+      sources.push('轮播/'+num+'.jpg');
+      var wave=(idx%3===0?-8:idx%3===1?18:32);
+      delays.push(base + wave + loopIdx*10);
+    });
+  });
+
+  sources.push('轮播/7.jpg','轮播/8.jpg','轮播/9.jpg');
+  delays.push(520,820,2200);
+
+  frame.style.opacity='1';
+  document.getElementById('blurFx').style.opacity='1';
+  var i=0;
+
+  function next(){
+    img.src=sources[i];
+    setBlur(i/(sources.length-1));
+    if(i===sources.length-1){
+      setBlur(1);
+      startFinalSequence();
+      return;
+    }
+    setTimeout(function(){
+      i++;
+      next();
+    }, delays[i]);
+  }
+
+  next();
+}
+
+setTimeout(startNumberSequence,15100);
+document.addEventListener('keydown',function(e){
+  if((e.code==='Space'||e.key===' ')&&canJumpToEnd){
+    e.preventDefault();
+    window.location.href='end.html';
+  }
+});
+</script>
+</body>
+</html>

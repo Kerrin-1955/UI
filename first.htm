@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>First</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:100vw;height:100vh;overflow:hidden;background:#000;position:relative}
+body.dodge-active{cursor:none}
+body.shake{animation:violentShake 900ms linear 4}
+
+.scene{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;pointer-events:none}
+.scene.swim{transition:opacity 2800ms ease}
+.scene.swim.show{opacity:1}
+.scene.jump{transition:opacity 450ms ease,transform 3000ms ease;transform:scale(1)}
+.scene.jump.show{opacity:1}
+.scene.jump.zoom{transform:scale(1.18)}
+.scene.story{z-index:3;transition:opacity var(--story-fade,1200ms) ease}
+.scene.story.show{opacity:1}
+
+.net{position:fixed;top:-38vh;width:min(24vw,410px);height:auto;opacity:0;z-index:4;pointer-events:none}
+.net-1{left:20%;transform:translate(-50%,-50%)}
+.net-2{left:50%;transform:translate(-50%,-50%)}
+.net-3{left:80%;transform:translate(-50%,-50%)}
+.net.show{animation:netDrop 900ms linear forwards,netFloat 2600ms ease-in-out 900ms infinite}
+
+.long-net{position:fixed;top:50%;left:-70vw;transform:translateY(-50%);width:auto;height:100vh;z-index:5;opacity:0;pointer-events:none}
+.long-net.show{opacity:1}
+.long-net.run{animation:longNetSweep 26000ms linear forwards}
+
+.dodge-btn{position:fixed;left:50%;bottom:9vh;transform:translateX(-50%) translateY(18px);z-index:6;opacity:0;pointer-events:none;padding:12px 18px;border:3px solid #9ec5ff;background:rgba(7,22,62,.88);color:#d6e7ff;font-family:"Press Start 2P","Pixel Emulator","Courier New",monospace;font-size:14px;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 0 0 2px #1b3f7a inset,0 0 14px rgba(110,170,255,.55);transition:opacity 700ms ease,transform 700ms ease}
+.dodge-btn.show{opacity:0;transform:translateX(-50%) translateY(0);pointer-events:none}
+
+.click-hud{position:fixed;right:2.2vw;top:10vh;width:min(220px,24vw);z-index:8;opacity:0;pointer-events:none;transition:opacity 320ms ease}
+.click-hud.show{opacity:1}
+.hud-label{font-family:"Press Start 2P","Pixel Emulator","Courier New",monospace;font-size:12px;color:#d7e8ff;letter-spacing:.06em;margin-bottom:10px;text-shadow:1px 1px 0 #00122d}
+.hud-bar{width:100%;height:240px;background:rgba(10,22,49,.78);border:2px solid #9ec5ff;box-shadow:0 0 0 2px #173567 inset;position:relative;overflow:hidden}
+.hud-fill{position:absolute;left:0;bottom:0;width:100%;height:0%;background:linear-gradient(180deg,#8ec3ff 0%,#2b6fcb 100%);transition:height 90ms linear}
+.hud-text{margin-top:10px;font-family:"Press Start 2P","Pixel Emulator","Courier New",monospace;font-size:12px;color:#c9ddff;line-height:1.5}
+
+.end-black{position:fixed;inset:0;background:#000;z-index:10;opacity:0;pointer-events:none;transition:opacity 2200ms ease}
+.end-black.show{opacity:1}
+
+.whale-cursor{position:fixed;width:360px;height:auto;z-index:12;opacity:0;pointer-events:none;transform:translate(-180px,-140px);transition:opacity 120ms ease}
+.whale-cursor.show{opacity:1}
+.whale-cursor.shake{animation:violentShakeCursor 900ms linear 1}
+
+.truck-scene{position:fixed;inset:0;z-index:11;opacity:0;pointer-events:none;transition:opacity 2600ms ease}
+.truck-scene.show{opacity:1;pointer-events:auto}
+.truck-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.truck-whale{position:absolute;left:50%;top:80%;width:min(22vw,420px);height:auto;transform:translate(-50%,-50%) rotate(-10deg) scale(2.1);transform-origin:center center;opacity:0;z-index:2;pointer-events:none;touch-action:none}
+.truck-whale.show{opacity:1}
+.truck-whale.run{animation:truckWhaleAutoSlide 5000ms ease-in-out forwards}
+.truck-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;pointer-events:none}
+
+@keyframes netDrop{
+  0%{top:-38vh;opacity:0}
+  20%{opacity:1}
+  100%{top:50%;opacity:1}
+}
+@keyframes netFloat{
+  0%{transform:translate(-50%,-50%) translateY(0)}
+  50%{transform:translate(-50%,-50%) translateY(-10px)}
+  100%{transform:translate(-50%,-50%) translateY(0)}
+}
+@keyframes longNetSweep{
+  0%{left:var(--long-net-start,-70vw)}
+  100%{left:var(--long-net-end,120vw)}
+}
+@keyframes violentShake{
+  0%{transform:translate(0,0)}
+  8%{transform:translate(-24px,14px)}
+  16%{transform:translate(23px,-16px)}
+  24%{transform:translate(-22px,18px)}
+  32%{transform:translate(20px,-15px)}
+  40%{transform:translate(-24px,16px)}
+  48%{transform:translate(25px,-18px)}
+  56%{transform:translate(-21px,15px)}
+  64%{transform:translate(20px,-14px)}
+  72%{transform:translate(-18px,13px)}
+  80%{transform:translate(16px,-12px)}
+  88%{transform:translate(-14px,10px)}
+  100%{transform:translate(0,0)}
+}
+@keyframes violentShakeCursor{
+  0%{transform:translate(-180px,-140px) translate(0,0)}
+  12%{transform:translate(-180px,-140px) translate(-26px,16px)}
+  24%{transform:translate(-180px,-140px) translate(24px,-18px)}
+  36%{transform:translate(-180px,-140px) translate(-22px,14px)}
+  48%{transform:translate(-180px,-140px) translate(20px,-14px)}
+  60%{transform:translate(-180px,-140px) translate(-18px,12px)}
+  72%{transform:translate(-180px,-140px) translate(16px,-11px)}
+  84%{transform:translate(-180px,-140px) translate(-12px,8px)}
+  100%{transform:translate(-180px,-140px) translate(0,0)}
+}
+@keyframes truckWhaleAutoSlide{
+  0%{left:0;top:65%;transform:translate(0,-50%) rotate(-10deg) scale(2.1)}
+  100%{left:110vw;top:54.4%;transform:translate(0,-50%) rotate(-10deg) scale(2.1)}
+}
+</style>
+</head>
+<body>
+<audio id="bgAudio" src="音乐/危险.mp3" autoplay loop></audio>
+<audio id="captureAudio" src="音乐/捕捉危机.mp3" preload="auto"></audio>
+<audio id="impactAudio" src="音乐/撞击.mp3" preload="auto"></audio>
+<audio id="whaleCryAudio" src="音乐/鲸鱼叫声.mp3" preload="auto"></audio>
+<img id="swim" class="scene swim" src="同游.jpg" alt="同游" />
+<img id="jump" class="scene jump" src="跃出海面.jpg" alt="跃出海面" />
+<img id="story" class="scene story" src="" alt="后续画面" />
+
+<img id="net1" class="net net-1" src="网1.png" alt="网1" />
+<img id="net2" class="net net-2" src="网2.png" alt="网2" />
+<img id="net3" class="net net-3" src="网3.png" alt="网3" />
+<img id="longNet" class="long-net" src="图片放置/长网.png" alt="长网" />
+
+<button id="dodgeBtn" class="dodge-btn" type="button">Start Dodging</button>
+
+<div id="clickHud" class="click-hud">
+  <div class="hud-label">SPACE HITS</div>
+  <div class="hud-bar"><div id="hudFill" class="hud-fill"></div></div>
+  <div id="hudText" class="hud-text">0 / 200 · 10s</div>
+</div>
+
+<div id="endBlack" class="end-black"></div>
+<img id="whaleCursor" class="whale-cursor" src="鲸鱼.png" alt="鲸鱼光标" />
+
+<div id="truckScene" class="truck-scene">
+  <img class="truck-bg" src="卡车.jpg" alt="卡车" />
+  <img id="truckWhale" class="truck-whale" src="被绑鲸鱼.png" alt="被绑鲸鱼" />
+  <img class="truck-cover" src="卡车盖.png" alt="卡车盖" />
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded',function(){
+  const bgAudio=document.getElementById('bgAudio');
+  const captureAudio=document.getElementById('captureAudio');
+  const impactAudio=document.getElementById('impactAudio');
+  const whaleCryAudio=document.getElementById('whaleCryAudio');
+  const swim=document.getElementById('swim');
+  const jump=document.getElementById('jump');
+  const story=document.getElementById('story');
+  const net1=document.getElementById('net1');
+  const net2=document.getElementById('net2');
+  const net3=document.getElementById('net3');
+  const longNet=document.getElementById('longNet');
+  const dodgeBtn=document.getElementById('dodgeBtn');
+  const clickHud=document.getElementById('clickHud');
+  const hudFill=document.getElementById('hudFill');
+  const hudText=document.getElementById('hudText');
+  const endBlack=document.getElementById('endBlack');
+  const whaleCursor=document.getElementById('whaleCursor');
+  const truckScene=document.getElementById('truckScene');
+  const truckWhale=document.getElementById('truckWhale');
+
+  const storyFrames=['少一.jpg','少二.jpg','少三.jpg','少四.jpg','少五.jpg','剩一.jpg'];
+  let storyIndex=-1;
+  let canAdvance=false;
+  let lastSwitchAt=0;
+  const switchGap=1000;
+  let crisisScheduled=false;
+
+  let mode='story';
+  let clickCount=0;
+  let challengeStart=0;
+  let challengeTimer=null;
+  let challengeDone=false;
+  let mouseLocked=false;
+  let caughtTriggered=false;
+  let truckDragActive=false;
+  let truckStartX=0;
+  let truckLocked=false;
+
+  function tryPlayAudio(audioEl){
+    if(!audioEl) return;
+    const playPromise=audioEl.play();
+    if(playPromise&&typeof playPromise.catch==='function'){
+      playPromise.catch(function(){});
+    }
+  }
+
+  function stopAudio(audioEl){
+    if(!audioEl) return;
+    audioEl.pause();
+    audioEl.currentTime=0;
+  }
+
+  function playImpactAudio(){
+    if(!impactAudio) return;
+    try{impactAudio.currentTime=0;}catch(err){}
+    tryPlayAudio(impactAudio);
+  }
+
+  tryPlayAudio(bgAudio);
+  window.addEventListener('pointerdown',function unlockSceneAudio(){
+    tryPlayAudio(bgAudio);
+    if(jump.classList.contains('show')&&jump.style.opacity!=='0'){
+      tryPlayAudio(whaleCryAudio);
+    }
+    if(mode==='dodging'){
+      tryPlayAudio(captureAudio);
+    }
+  },{once:true});
+
+  setTimeout(function(){
+    swim.classList.add('show');
+  },120);
+
+  setTimeout(function(){
+    jump.classList.add('show');
+    swim.classList.remove('show');
+    whaleCryAudio.currentTime=0;
+    tryPlayAudio(whaleCryAudio);
+    var panStart=Date.now();
+    var panDuration=6000;
+    var panMaxPx=30;
+    function panJump(){
+      var elapsed=Date.now()-panStart;
+      var t=Math.min(1,elapsed/panDuration);
+      var ease=1-Math.pow(1-t,3);
+      jump.style.transform='translateX(-'+Math.round(ease*panMaxPx)+'px)';
+      if(t<1){ requestAnimationFrame(panJump); }
+      else{
+        jump.style.transition='opacity 700ms ease';
+        jump.style.opacity='0';
+        stopAudio(whaleCryAudio);
+        setTimeout(autoPlayStoryFrames,750);
+      }
+    }
+    requestAnimationFrame(panJump);
+  },800);
+
+  function showStoryFrame(src,opts){
+    const options=opts||{};
+    const doFadeOut=options.doFadeOut??false;
+    const fadeOut=options.fadeOut??700;
+    const fadeIn=options.fadeIn??1200;
+    const hold=options.hold??0;
+
+    story.style.setProperty('--story-fade',`${fadeIn}ms`);
+
+    const showNext=function(){
+      story.src=src;
+      story.classList.add('show');
+      if(typeof options.onDone==='function'){
+        setTimeout(options.onDone,fadeIn+hold);
+      }
+    };
+
+    if(doFadeOut){
+      story.classList.remove('show');
+      setTimeout(showNext,fadeOut);
+    } else {
+      showNext();
+    }
+  }
+
+  function startCaptureChallenge(){
+    mode='challenge';
+    challengeDone=false;
+    clickCount=0;
+    challengeStart=Date.now();
+    clickHud.classList.add('show');
+    updateHud();
+
+    challengeTimer=setInterval(function(){
+      updateHud();
+      const elapsed=(Date.now()-challengeStart)/1000;
+      if(elapsed>=10&&!challengeDone){
+        challengeDone=true;
+        clearInterval(challengeTimer);
+        failBlackout();
+      }
+    },80);
+  }
+
+  function updateHud(){
+    const elapsed=Math.min(10,Math.max(0,(Date.now()-challengeStart)/1000));
+    const percent=Math.min(100,(clickCount/200)*100);
+    hudFill.style.height=`${percent}%`;
+    hudText.textContent=`${clickCount} / 200 · ${(10-elapsed).toFixed(1)}s`;
+  }
+
+  function successEscape(){
+    clearInterval(challengeTimer);
+    clickHud.classList.remove('show');
+    endBlack.classList.remove('show');
+    showStoryFrame('跃出海面.jpg',{doFadeOut:true,fadeOut:120,fadeIn:220});
+  }
+
+  function failBlackout(){
+    clickHud.classList.remove('show');
+    endBlack.classList.add('show');
+
+    setTimeout(function(){
+      mode='truck';
+      truckScene.classList.add('show');
+      truckWhale.classList.add('show');
+      truckWhale.classList.add('run');
+      setTimeout(function(){
+        window.location.href='second.html';
+      },5000);
+    },2200);
+  }
+
+  function startDodgePhase(){
+    if(mode==='dodging'||mode==='caught'||mode==='challenge'||mode==='truck') return;
+    stopAudio(bgAudio);
+    captureAudio.currentTime=0;
+    tryPlayAudio(captureAudio);
+    mode='dodging';
+    mouseLocked=false;
+    caughtTriggered=false;
+
+    dodgeBtn.classList.remove('show');
+    net1.classList.remove('show');
+    net2.classList.remove('show');
+    net3.classList.remove('show');
+
+    document.body.classList.add('dodge-active');
+    whaleCursor.classList.add('show');
+    showStoryFrame('单背景.jpg',{fadeIn:260});
+
+    longNet.classList.add('show');
+    void longNet.offsetWidth;
+
+    const netWidth=longNet.getBoundingClientRect().width;
+    longNet.style.setProperty('--long-net-start',`${-netWidth}px`);
+    longNet.style.setProperty('--long-net-end',`${window.innerWidth+netWidth*0.2}px`);
+    longNet.classList.add('run');
+    trackLongNetAlignment();
+  }
+
+  function triggerCaughtPhase(){
+    if(caughtTriggered) return;
+    caughtTriggered=true;
+    mode='caught';
+    document.body.classList.remove('dodge-active');
+    whaleCursor.classList.add('shake');
+    longNet.classList.remove('run');
+    longNet.classList.remove('show');
+    document.body.classList.add('shake');
+
+    setTimeout(function(){
+      whaleCursor.classList.remove('shake');
+      whaleCursor.classList.remove('show');
+      document.body.classList.remove('shake');
+      showStoryFrame('被捕.jpg',{doFadeOut:true,fadeOut:80,fadeIn:260,onDone:startCaptureChallenge});
+    },900);
+  }
+
+  function trackLongNetAlignment(){
+    if(mode!=='dodging'||caughtTriggered) return;
+    const rect=longNet.getBoundingClientRect();
+
+    // 当长网最左端对齐网页最左端时，锁定鼠标并进入被捕阶段
+    if(rect.left>=0){
+      mouseLocked=true;
+      triggerCaughtPhase();
+      return;
+    }
+
+    requestAnimationFrame(trackLongNetAlignment);
+  }
+
+  function autoPlayStoryFrames(){
+    var frames=['少一.jpg','少二.jpg','少三.jpg','少四.jpg','少五.jpg','剩一.jpg'];
+    var idx=0;
+    var interval=2400;
+    function showNext(){
+      if(idx>=frames.length){
+        // 播放完毕，快速跳转危机
+        showStoryFrame('危机.jpg',{doFadeOut:true,fadeOut:400,fadeIn:500,hold:1000,onDone:function(){
+          showStoryFrame('危机2.jpg',{doFadeOut:true,fadeOut:400,fadeIn:500,onDone:function(){
+            playCrisisSequence();
+          }});
+        }});
+        return;
+      }
+      showStoryFrame(frames[idx],{doFadeOut:idx>0,fadeOut:600,fadeIn:1200});
+      playImpactAudio();
+      idx++;
+      setTimeout(showNext,interval);
+    }
+    showNext();
+  }
+
+  function playCrisisSequence(){
+    showStoryFrame('单背景.jpg',{
+      fadeIn:260,
+      onDone:function(){
+        net1.classList.add('show');
+        setTimeout(function(){net2.classList.add('show');},220);
+        setTimeout(function(){
+          net3.classList.add('show');
+          setTimeout(function(){
+            dodgeBtn.classList.add('show');
+            dodgeBtn.disabled=false;
+            dodgeBtn.style.pointerEvents='auto';
+            mode='readyDodge';
+          },320);
+        },440);
+      }
+    });
+  }
+
+  dodgeBtn.addEventListener('click',startDodgePhase);
+  dodgeBtn.addEventListener('pointerup',startDodgePhase);
+
+  longNet.addEventListener('animationend',function(e){
+    if(e.animationName!=='longNetSweep'||mode!=='dodging') return;
+    triggerCaughtPhase();
+  });
+
+  window.addEventListener('mousemove',function(e){
+    if(document.body.classList.contains('dodge-active')&&!mouseLocked){
+      whaleCursor.style.left=`${e.clientX}px`;
+      whaleCursor.style.top=`${e.clientY}px`;
+    }
+  });
+
+  window.addEventListener('keydown',function(e){
+    if(e.code==='Space'&&mode==='truck'&&!truckLocked){
+      e.preventDefault();
+      return;
+      return;
+    }
+    if(e.code==='Space'&&(mode==='readyDodge')){
+      e.preventDefault();
+      startDodgePhase();
+      return;
+    }
+    if(mode==='challenge'&&!challengeDone&&e.code==='Space'){
+      e.preventDefault();
+      document.body.classList.remove('shake');
+      void document.body.offsetWidth;
+      document.body.classList.add('shake');
+      setTimeout(function(){ document.body.classList.remove('shake'); },220);
+      clickCount+=1;
+      updateHud();
+      if(clickCount>=200){
+        challengeDone=true;
+        mode='done';
+        successEscape();
+      }
+      return;
+    }
+
+    if(!canAdvance||e.repeat||mode!=='story') return;
+    const key=e.key.toLowerCase();
+    if(key!=='w'&&key!=='a'&&key!=='d') return;
+
+    const now=Date.now();
+    if(now-lastSwitchAt<switchGap) return;
+
+    if(storyIndex<storyFrames.length-1){
+      storyIndex+=1;
+      showStoryFrame(storyFrames[storyIndex]);
+      lastSwitchAt=now;
+
+      if(storyFrames[storyIndex]==='剩一.jpg'&&!crisisScheduled){
+        crisisScheduled=true;
+        canAdvance=false;
+        setTimeout(function(){
+          playCrisisSequence();
+        },3000);
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>table2</title>
+    <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;height:100%}
+    body{
+      overflow:hidden;
+      background:url('图片放置/桌面壁纸.jpg') center/cover no-repeat fixed;
+      font-family:"Arial Black","Microsoft YaHei UI","Microsoft YaHei",sans-serif;
+    }
+
+    /* Desktop icons (restored) */
+    .desktop{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:5;
+    }
+    .desktop-icon{
+      position:absolute;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:4px;
+      width:64px;
+      cursor:default;
+      pointer-events:none;
+      user-select:none;
+      padding:4px;
+      border-radius:6px;
+    }
+    .desktop-icon img{
+      width:52px;
+      height:52px;
+      object-fit:contain;
+      filter:drop-shadow(0 2px 6px rgba(0,0,0,0.35));
+    }
+    .desktop-icon span{
+      font-size:11px;
+      color:#fff;
+      text-align:center;
+      line-height:1.3;
+      text-shadow:0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+      word-break:break-word;
+      max-width:72px;
+    }
+
+    /* Ball */
+    #ball{
+      position:fixed;
+      right:26px;
+      bottom:26px;
+      width:66px;
+      height:66px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:none;
+      z-index:2000;
+      cursor:pointer;
+      user-select:none;
+      animation:ballFloat 2600ms ease-in-out infinite;
+    }
+
+    #ball .eye{
+      position:absolute;
+      top:22px;
+      width:8px;
+      height:8px;
+      background:#000;
+      border-radius:999px;
+    }
+    #ball .eye.left{left:18px;}
+    #ball .eye.right{left:40px;}
+    #ball .mouth{
+      position:absolute;
+      left:22px;
+      top:36px;
+      width:26px;
+      height:3px;
+      background:#000;
+      border-radius:999px;
+    }
+
+    @keyframes ballFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-10px,0)}}
+
+    /* Dialog */
+    #dialog{
+      position:fixed;
+      right:110px;
+      bottom:34px;
+      width:min(520px,48vw);
+      display:none;
+      z-index:1999;
+      pointer-events:none;
+    }
+    #dialog.show{display:block;}
+
+    #dialog img{width:100%;height:auto;display:block}
+
+    #dialogText{
+      position:absolute;
+      left:10%;
+      top:34%;
+      width:80%;
+      color:#111;
+      font-weight:900;
+      font-size:clamp(16px,1.2vw,22px);
+      line-height:1.25;
+      text-align:left;
+      letter-spacing:.02em;
+      white-space:normal;
+      }
+    </style>
+  </head>
+  <body>
+  <div class="desktop" aria-hidden="true">
+    <div class="desktop-icon" style="left:16px;top:16px;">
+      <img src="图标/edge图标.png" alt="Edge">
+      <span>Microsoft Edge</span>
+      </div>
+    <div class="desktop-icon" style="left:16px;top:106px;">
+        <img src="图标/word图标.png" alt="Word">
+        <span>Word</span>
+      </div>
+    <div class="desktop-icon" style="left:16px;top:196px;">
+        <img src="图标/ps图标.png" alt="Photoshop">
+        <span>Photoshop</span>
+      </div>
+    <div class="desktop-icon" style="left:16px;top:286px;">
+        <img src="图标/ae图标.png" alt="After Effects">
+        <span>After Effects</span>
+      </div>
+    <div class="desktop-icon" style="left:16px;top:376px;">
+        <img src="图标/figma图标.png" alt="Figma">
+        <span>Figma</span>
+      </div>
+    <div class="desktop-icon" style="left:16px;top:466px;">
+        <img src="图标/cursor图标.png" alt="Cursor">
+        <span>Cursor</span>
+      </div>
+    <div class="desktop-icon" style="left:16px;top:556px;">
+      <img src="图标/回收站图标.png" alt="Recycle Bin">
+        <span>回收站</span>
+      </div>
+
+    <div class="desktop-icon" style="left:100px;top:16px;">
+        <img src="图标/qq图标.png" alt="QQ">
+        <span>QQ</span>
+      </div>
+    <div class="desktop-icon" style="left:100px;top:106px;">
+        <img src="图标/微信图标.png" alt="WeChat">
+        <span>微信</span>
+      </div>
+    <div class="desktop-icon" style="left:100px;top:196px;">
+      <img src="图标/腾讯会议图标.png" alt="Tencent Meeting">
+        <span>腾讯会议</span>
+      </div>
+    <div class="desktop-icon" style="left:100px;top:286px;">
+      <img src="图标/百度网盘图标.png" alt="Baidu Netdisk">
+        <span>百度网盘</span>
+      </div>
+    <div class="desktop-icon" style="left:100px;top:376px;">
+        <img src="图标/steam图标.png" alt="Steam">
+        <span>Steam</span>
+      </div>
+    <div class="desktop-icon" style="left:100px;top:466px;">
+      <img src="图标/OCEAN TIMING.png" alt="THE DEPTHS">
+      <span>THE DEPTHS</span>
+      </div>
+    </div>
+
+  <div id="dialog">
+    <img src="对话框.png" alt="dialog" />
+    <div id="dialogText"></div>
+    </div>
+
+  <audio id="clickSfx" src="音乐/点击.mp3" preload="auto"></audio>
+  <audio id="typeSfx" src="音乐/打字.mp3" preload="auto" loop></audio>
+
+  <div id="ball" aria-label="ball">
+    <span class="eye left"></span>
+    <span class="eye right"></span>
+    <span class="mouth"></span>
+      </div>
+
+    <script>
+    const ball = document.getElementById('ball');
+    const dialog = document.getElementById('dialog');
+    const dialogText = document.getElementById('dialogText');
+    const clickSfx = document.getElementById('clickSfx');
+    const typeSfx = document.getElementById('typeSfx');
+
+    const lines = [
+      "You're done? How was it?",
+      "Don't worry — my goal isn't to guilt-trip you.",
+      "I just want you to know this: the real orca chose to let go — and then stopped breathing on its own. The revenge ending in this work is only a 'what if' — what if it hadn't let go?",
+      "The answer is: it still wouldn't be free.",
+      "If you ever see an animal show again, I hope your first thought isn't 'Humans and animals live in harmony,' but 'How does it feel right now?' You don't need to do anything — just pause for a second and think. That's enough. Thank you for hearing its story."
+    ];
+
+    let clickCount = 0;
+    let rotateTimer = null;
+
+    function clearRotate(){
+      if (rotateTimer) {
+        clearInterval(rotateTimer);
+        rotateTimer = null;
+      }
+      if (typeSfx) {
+        typeSfx.pause();
+        try { typeSfx.currentTime = 0; } catch(err) {}
+      }
+    }
+
+    function hideDialog(){
+      clearRotate();
+      dialog.classList.remove('show');
+      dialogText.textContent = '';
+    }
+
+    function startRotateText(fullText){
+      clearRotate();
+      const chunkSize = 30;
+      if (!fullText) { dialogText.textContent = ''; return; }
+
+      if (typeSfx) {
+        try { typeSfx.currentTime = 0; } catch(err) {}
+        const p = typeSfx.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+
+      let i = 0;
+      const padded = fullText + '   '; // little gap between loops
+      const totalSteps = padded.length;
+
+      function render(){
+        const start = i;
+        let chunk = padded.slice(start, start + chunkSize);
+        if (chunk.length < chunkSize) {
+          chunk += padded.slice(0, chunkSize - chunk.length);
+        }
+        dialogText.textContent = chunk;
+        i++;
+
+        if (i >= totalSteps) {
+          dialogText.textContent = fullText.slice(-chunkSize);
+          clearRotate();
+        }
+      }
+
+      render();
+      rotateTimer = setInterval(render, 70);
+    }
+
+    function showDialogWithText(text){
+      dialog.classList.add('show');
+      startRotateText(text);
+    }
+
+    ball.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (clickSfx) {
+        try { clickSfx.currentTime = 0; } catch(err) {}
+        const p = clickSfx.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      }
+      clickCount = Math.min(clickCount + 1, lines.length);
+      showDialogWithText(lines[clickCount - 1]);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target === ball || ball.contains(e.target)) return;
+      hideDialog();
+    });
+    </script>
+  </body>
+</html>
